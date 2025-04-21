@@ -1,3 +1,38 @@
-requests
+# Mirai Cook - requirements.txt - Updated
+
+# Core Web Framework
 streamlit
-python-dotenv
+
+# Azure SDKs
+azure-cosmos          # For Cosmos DB (NoSQL API)
+azure-storage-blob    # For Blob Storage (Recipe Images)
+azure-identity        # For Managed Identity / Service Principal Auth
+azure-keyvault-secrets # For Azure Key Vault access
+azure-ai-documentintelligence # For Document Intelligence (Recipe Digitizer)
+azure-ai-textanalytics  # For Language Service (Custom Classification, etc.)
+azure-ai-vision-imageanalysis # For Vision Service (Image Analysis 4.0+)
+azure-cognitiveservices-speech # For Speech Service (STT/TTS)
+# Note: Using the 'openai' package configured for Azure, as 'azure-openai' was not found on PyPI
+openai>=1.0.0         # For Azure OpenAI Service (Requires specific env vars for Azure)
+azure-search-documents # For Azure AI Search
+
+# AI Orchestration
+semantic-kernel       # Microsoft Semantic Kernel
+
+# Data Validation & Modeling
+pydantic
+
+# Web Scraping & HTTP Requests
+requests              # General HTTP requests, also used by some scrapers/SDKs
+beautifulsoup4        # HTML parsing (often used with requests for scraping fallback)
+recipe-scrapers       # For parsing recipe metadata from URLs
+newspaper3k           # (Optional) Alternative for extracting main text content from URLs
+
+# Utilities
+python-dotenv         # For loading .env files locally
+python-Levenshtein    # For string similarity calculation (ingredient matching)
+# fuzzywuzzy[speedup] # Alternative for string similarity
+
+# Note: Consider running 'pip freeze > requirements.txt' later to pin exact versions
+# for better reproducibility once initial setup is working.
+
