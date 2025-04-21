@@ -32,6 +32,7 @@ newspaper3k           # (Optional) Alternative for extracting main text content 
 python-dotenv         # For loading .env files locally
 python-Levenshtein    # For string similarity calculation (ingredient matching)
 # fuzzywuzzy[speedup] # Alternative for string similarity
+unidecode            # For normalizing Unicode characters (e.g., accents)
 
 # Note: Consider running 'pip freeze > requirements.txt' later to pin exact versions
 # for better reproducibility once initial setup is working.
