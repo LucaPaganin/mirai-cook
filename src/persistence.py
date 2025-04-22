@@ -17,7 +17,7 @@ try:
     from .models import Recipe, IngredientEntity, Pantry, IngredientItem, sanitize_for_id
 except ImportError:
     # Fallback per esecuzione script standalone o se la struttura è diversa
-    from models import Recipe, IngredientEntity, Pantry, IngredientItem, sanitize_for_id
+    from src.models import Recipe, IngredientEntity, Pantry, IngredientItem, sanitize_for_id
 
 # Configurazione del logging (buona pratica)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')

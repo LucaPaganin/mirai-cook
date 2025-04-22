@@ -1,90 +1,88 @@
 # MirAI Cook 🍳🤖
 
-**Il tuo assistente culinario AI personale e intelligente.**
+**Your personal and intelligent AI culinary assistant.**
 
-Mirai Cook è un'applicazione web progettata per essere un ricettario digitale avanzato e un aiuto in cucina, sfruttando la potenza dei servizi AI di Microsoft Azure. Permette di gestire ricette, digitalizzarle da immagini o importarle da URL, tenere traccia della dispensa, ricevere suggerimenti personalizzati, generare liste della spesa, interagire vocalmente e molto altro.
+Mirai Cook is a web application designed to be an advanced digital cookbook and kitchen helper, leveraging the power of Microsoft Azure AI services. It allows you to manage recipes, digitize them from images or import them from URLs, track your pantry, receive personalized suggestions, generate shopping lists, interact via voice, and much more.
 
-[![Status Badge Placeholder](https://img.shields.io/badge/status-in%20development-orange)](https://github.com/LucaPaganin/mirai-cook) 
-## ✨ Funzionalità Principali
+## ✨ Key Features
 
-* **Ricettario Digitale:** Database cloud (Azure Cosmos DB) per salvare e organizzare le tue ricette.
-* **Inserimento Multi-modalità:** Aggiungi ricette manualmente, digitalizzale da foto/scansioni (con Azure AI Document Intelligence + HITL), o importale da URL (con `recipe-scrapers` + AI Fallback + HITL).
-* **Gestione Dispensa:** Tieni traccia degli ingredienti che hai a casa.
-* **Master List Ingredienti:** Gestione centralizzata degli ingredienti conosciuti con caching calorie e controllo duplicati/similarità.
-* **Categorizzazione Automatica:** Classifica le ricette per portata (Antipasto, Primo...) usando Azure AI Language (con conferma utente HITL).
-* **Analisi Foto Piatti:** Associa foto ai piatti e ottieni tag/descrizioni automatiche con Azure AI Vision.
-* **Stima Calorie:** Calcolo approssimativo delle calorie basato su database alimentare esterno e cache locale.
-* **Suggerimenti AI (dal Ricettario):** Un agente AI (Semantic Kernel + Azure OpenAI) suggerisce ricette dal tuo ricettario basate sulla tua dispensa.
-* **Generazione Nuove Ricette:** Chiedi ad Azure OpenAI di creare ricette inedite su misura.
-* **Lista della Spesa:** Genera automaticamente la lista degli ingredienti mancanti per le ricette scelte (con opzione download).
-* **Interazione Vocale:** Detta ingredienti/istruzioni (Speech-to-Text) e ascolta le ricette (Text-to-Speech) usando Azure AI Speech.
-* **Ricerca Avanzata:** Trova ricette nel tuo ricettario usando Azure AI Search con ricerca testuale e filtri/facet.
-* **UI Intuitiva:** Interfaccia web sviluppata con Streamlit, ottimizzata per mobile.
-* **Sicurezza:** Gestione sicura delle credenziali tramite Azure Key Vault e Managed Identity/Service Principal.
-* **Cloud-Native:** Progettato per il deployment su Azure (App Service / Container Apps).
+* **Digital Cookbook:** Cloud database (Azure Cosmos DB) to save and organize your recipes.
+* **Multi-modal Input:** Add recipes manually, digitize them from photos/scans (with Azure AI Document Intelligence + HITL), or import them from URLs (with `recipe-scrapers` + AI Fallback + HITL).
+* **Pantry Management:** Keep track of the ingredients you have at home.
+* **Master Ingredient List:** Centralized management of known ingredients with calorie caching and duplicate/similarity checks.
+* **Automatic Categorization:** Classify recipes by course (Appetizer, First Course...) using Azure AI Language (with user confirmation HITL).
+* **Dish Photo Analysis:** Associate photos with dishes and get automatic tags/descriptions with Azure AI Vision.
+* **Calorie Estimation:** Approximate calorie calculation based on external food databases and local cache.
+* **AI Suggestions (from Cookbook):** An AI agent (Semantic Kernel + Azure OpenAI) suggests recipes from your cookbook based on your pantry.
+* **New Recipe Generation:** Ask Azure OpenAI to create brand new recipes tailored to your needs.
+* **Shopping List:** Automatically generate a list of missing ingredients for chosen recipes (with download option).
+* **Voice Interaction:** Dictate ingredients/instructions (Speech-to-Text) and listen to recipes (Text-to-Speech) using Azure AI Speech.
+* **Advanced Search:** Find recipes in your cookbook using Azure AI Search with text search and filters/facets.
+* **Intuitive UI:** Web interface developed with Streamlit, optimized for mobile.
+* **Security:** Secure credential management via Azure Key Vault and Managed Identity/Service Principal.
+* **Cloud-Native:** Designed for deployment on Azure (App Service / Container Apps).
 
 ## 🛠️ Tech Stack
 
-* **Linguaggio:** Python 3.9+
-* **Framework UI:** Streamlit
-* **Database:** Azure Cosmos DB (API NoSQL)
-* **Storage Oggetti:** Azure Blob Storage
+* **Language:** Python 3.9+
+* **UI Framework:** Streamlit
+* **Database:** Azure Cosmos DB (NoSQL API)
+* **Object Storage:** Azure Blob Storage
 * **AI Services:**
-    * Azure AI Services (Risorsa Unificata per Vision, Language, Speech, Document Intelligence)
+    * Azure AI Services (Unified Resource for Vision, Language, Speech, Document Intelligence)
     * Azure OpenAI Service (GPT-3.5/GPT-4)
     * Azure AI Search
-* **Orchestrazione AI:** Microsoft Semantic Kernel
-* **Gestione Segreti:** Azure Key Vault
-* **Identità Applicazione:** Azure Managed Identity / Service Principal
+* **AI Orchestration:** Microsoft Semantic Kernel
+* **Secret Management:** Azure Key Vault
+* **Application Identity:** Azure Managed Identity / Service Principal
 * **Deployment:** Docker, Azure App Service / Azure Container Apps
 
-## 🚀 Setup e Installazione Locale
+## 🚀 Local Setup and Installation
 
-*(Sezione da dettagliare)*
+*(Section to be detailed)*
 
-1.  **Clona il Repository:**
+1.  **Clone the Repository:**
     ```bash
     git clone [https://github.com/LucaPaganin/mirai-cook.git](https://github.com/LucaPaganin/mirai-cook.git)
     cd mirai-cook
     ```
-2.  **Crea Ambiente Virtuale:**
+2.  **Create Virtual Environment:**
     ```bash
     python -m venv .venv
     source .venv/bin/activate  # Linux/macOS
-    # oppure
+    # or
     # .\.venv\Scripts\activate  # Windows
     ```
-3.  **Installa Dipendenze:**
+3.  **Install Dependencies:**
     ```bash
     pip install -r requirements.txt
     ```
-4.  **Configura Variabili d'Ambiente:**
-    * Copia `.env.example` in `.env`.
-    * Compila il file `.env` con le tue credenziali Azure (Key Vault URI, SP/Managed Identity details o chiavi dirette per test locali se necessario). **Non committare mai il file `.env`!**
-5.  **Avvia l'App Streamlit:**
+4.  **Configure Environment Variables:**
+    * Copy `.env.example` to `.env`.
+    * Fill the `.env` file with your Azure credentials (Key Vault URI, SP/Managed Identity details, or direct keys for local testing if needed). **Never commit the `.env` file!**
+5.  **Run the Streamlit App:**
     ```bash
-    streamlit run app/mirai_cook.py
+    streamlit run app/mirai_cook.py # Or your main script name
     ```
 
 ## ☁️ Deployment
 
-*(Sezione da dettagliare)*
+*(Section to be detailed)*
 
-L'applicazione è progettata per essere containerizzata con Docker e deployata su Azure App Service o Azure Container Apps. Sarà necessario configurare le variabili d'ambiente come segreti nella piattaforma di hosting e assicurarsi che l'identità gestita (o il service principal) abbia i permessi corretti sulle risorse Azure (Key Vault, Cosmos DB, etc.).
+The application is designed to be containerized with Docker and deployed on Azure App Service or Azure Container Apps. Environment variables will need to be configured as secrets in the hosting platform, and ensure the managed identity (or service principal) has the correct permissions on Azure resources (Key Vault, Cosmos DB, etc.).
 
-Vedi il file `Dockerfile` e potenziali script di deployment o pipeline CI/CD.
+See the `Dockerfile` and potential deployment scripts or CI/CD pipelines.
 
-## 📖 Utilizzo
+## 📖 Usage
 
-*(Sezione da dettagliare con screenshot o GIF animate)*
+*(Section to be detailed with screenshots or GIFs)*
 
-Descrivere brevemente come usare le funzionalità principali: aggiungere ricette, gestire la dispensa, ottenere suggerimenti, ecc.
+Briefly describe how to use the main features: adding recipes, managing the pantry, getting suggestions, etc.
 
 ## 🤝 Contributing
 
-*(Se applicabile, aggiungere linee guida per contributi)*
+*(If applicable, add contribution guidelines)*
 
-## 📄 Licenza
+## 📄 License
 
-Questo progetto è rilasciato sotto la Licenza MIT. Vedi il file `LICENSE` per i dettagli.
-
+This project is licensed under the MIT License. See the `LICENSE` file for details.
