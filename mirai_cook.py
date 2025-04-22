@@ -1,68 +1,67 @@
 # -*- coding: utf-8 -*-
 """
-Entry point principale per l'applicazione Streamlit Mirai Cook.
-Questo script definisce la pagina Home/Benvenuto e le configurazioni generali dell'app.
-La logica delle singole pagine si trova nella cartella 'pages/'.
+Main entry point for the Mirai Cook Streamlit application.
+This script defines the Home/Welcome page and general app configurations.
+The logic for individual pages is located in the 'pages/' folder.
 """
 
 import streamlit as st
-# Importa altre librerie necessarie per configurazioni globali se servono
+# Import other libraries needed for global configuration if necessary
 # import os
 # from dotenv import load_dotenv
 
-# --- Configurazione Pagina Streamlit ---
-# NOTA: st.set_page_config() deve essere il primo comando Streamlit eseguito.
+# --- Streamlit Page Configuration ---
+# NOTE: st.set_page_config() must be the first Streamlit command executed.
 st.set_page_config(
     page_title="Mirai Cook AI",
-    page_icon="🍳",  # Puoi scegliere un'emoji o un URL di un'icona
-    layout="wide", # Usa l'intera larghezza della pagina
-    initial_sidebar_state="expanded" # Mostra la sidebar all'avvio
+    page_icon="🍳",  # You can choose an emoji or an icon URL
+    layout="wide", # Use the full width of the page
+    initial_sidebar_state="expanded" # Show the sidebar on startup
 )
 
-# --- Caricamento Configurazioni Iniziali (Opzionale) ---
-# Se hai configurazioni globali o vuoi caricare .env subito
+# --- Initial Configuration Loading (Optional) ---
+# If you have global configurations or want to load .env immediately
 # load_dotenv()
-# print("Variabili d'ambiente caricate.") # Per debug
+# print("Environment variables loaded.") # For debugging
 
-# --- Contenuto Pagina Home ---
+# --- Home Page Content ---
 
-st.title("Benvenuto in Mirai Cook! 🍳🤖")
+st.title("Welcome to Mirai Cook! 🍳🤖")
 
 st.markdown("""
-Il tuo assistente culinario personale potenziato dall'Intelligenza Artificiale.
+Your personal culinary assistant powered by Artificial Intelligence.
 
-**Esplora le sezioni usando il menu nella barra laterale a sinistra:**
+**Explore the sections using the menu in the sidebar on the left:**
 
-* **Ricettario:** Sfoglia, cerca e visualizza le tue ricette salvate.
-* **Aggiungi/Modifica:** Inserisci manualmente nuove ricette o modificane di esistenti.
-* **Importa Ricetta:** Aggiungi ricette digitalizzandole da immagini/PDF o importandole da URL.
-* **Gestione Dispensa:** Tieni traccia degli ingredienti che hai a disposizione.
-* **Gestione Ingredienti:** Visualizza e gestisci la lista principale degli ingredienti conosciuti dall'app.
-* **Suggerimenti AI:** Chiedi all'AI cosa cucinare basandosi sul tuo ricettario e sulla tua dispensa, oppure fatti generare ricette completamente nuove.
-* **Ricerca Avanzata:** Utilizza la potenza di Azure AI Search per trovare ricette nel tuo database.
+* **Recipe Book:** Browse, search, and view your saved recipes.
+* **Add/Edit:** Manually enter new recipes or edit existing ones.
+* **Import Recipe:** Add recipes by digitizing them from images/PDFs or importing from URLs.
+* **Pantry Management:** Keep track of the ingredients you have available.
+* **Ingredient Management:** View and manage the main list of ingredients known to the app.
+* **AI Suggestions:** Ask the AI what to cook based on your recipe book and pantry, or have it generate completely new recipes.
+* **Advanced Search:** Use the power of Azure AI Search to find recipes in your database.
 
-*(Questa è la pagina principale. La logica specifica di ogni sezione si trova nei file corrispondenti nella cartella `pages/`)*
+*(This is the main page. The specific logic for each section is found in the corresponding files in the `pages/` folder)*
 """)
 
-# Puoi aggiungere un'immagine di benvenuto se vuoi
+# You can add a welcome image if you want
 # try:
 #     st.image("path/to/your/welcome_image.png", use_column_width=True)
 # except FileNotFoundError:
-#     st.warning("Immagine di benvenuto non trovata.")
+#     st.warning("Welcome image not found.")
 
-st.sidebar.success("Seleziona una pagina qui sopra.")
+st.sidebar.success("Select a page above.")
 
-# --- Logica Aggiuntiva della Pagina Home (se necessaria) ---
-# Ad esempio, potresti mostrare un riepilogo, le ultime ricette aggiunte, ecc.
-# Ma mantieni questo file snello, la logica principale va nelle altre pagine.
+# --- Additional Home Page Logic (if needed) ---
+# For example, you could show a summary, the latest added recipes, etc.
+# But keep this file lean; main logic goes in the other pages.
 
-# --- Esempio di inizializzazione Session State (se serve uno stato globale) ---
+# --- Example of Session State Initialization (if you need a global state) ---
 # if 'app_initialized' not in st.session_state:
 #     st.session_state['app_initialized'] = True
-#     st.session_state['user_id'] = "default_user" # Per ora, single user
-#     # Inizializza altre variabili di stato globali se necessario
-#     print("Stato sessione inizializzato.")
+#     st.session_state['user_id'] = "default_user" # For now, single user
+#     # Initialize other global state variables if necessary
+#     print("Session state initialized.")
 
-
-# Ricorda: La maggior parte del codice UI e della logica andrà nei file
-# dentro la cartella 'pages/' e nei moduli dentro 'src/'.
+# Remember: Most of the UI code and logic will go in the files
+# inside the 'pages/' folder and in the modules inside 'src/'.

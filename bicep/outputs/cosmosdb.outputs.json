@@ -1,0 +1,22 @@
+{
+  "assignedPrincipalId": {
+    "type": "String",
+    "value": ""
+  },
+  "cosmosDbAccountId": {
+    "type": "String",
+    "value": "/subscriptions/a9c90e17-e1f9-4d01-885e-fdbc3057dfe8/resourceGroups/mirai-cook/providers/Microsoft.DocumentDB/databaseAccounts/miraicook-cosmos-pimyxjyyo7"
+  },
+  "cosmosDbAccountName": {
+    "type": "String",
+    "value": "miraicook-cosmos-pimyxjyyo7"
+  },
+  "cosmosDbEndpoint": {
+    "type": "String",
+    "value": "https://miraicook-cosmos-pimyxjyyo7.documents.azure.com:443/"
+  },
+  "isServerless": {
+    "type": "Bool",
+    "value": true
+  }
+}

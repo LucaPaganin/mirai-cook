@@ -25,7 +25,7 @@ param managedIdentityPrincipalId string = ''
 // Storage account names must be between 3 and 24 characters in length and use lowercase letters and numbers only.
 // We combine the prefix with a unique string derived from the resource group ID for consistency and uniqueness.
 // We take the first 18 chars of the unique string to leave room for the prefix and stay under 24 chars total.
-var uniqueRgString = substring(uniqueString(resourceGroup().id), 0, 18)
+var uniqueRgString = substring(uniqueString(resourceGroup().id), 0, 10)
 // Ensure the final name is lowercase. Adjust prefix length if needed.
 var storageAccountName = toLower('${prefix}${uniqueRgString}')
 

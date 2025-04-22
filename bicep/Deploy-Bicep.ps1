@@ -60,4 +60,27 @@ if ($BicepParameterFile) {
 
 az @azCmd
 
+if (-not $WhatIf) {
+    # Save outputs to bicep/outputs/<template>.outputs.json
+    $templateBaseName = [System.IO.Path]::GetFileNameWithoutExtension($BicepTemplateFile)
+    $outputsFolder = Join-Path -Path (Split-Path -Parent $MyInvocation.MyCommand.Path) -ChildPath "outputs"
+    if (-not (Test-Path $outputsFolder)) {
+        New-Item -ItemType Directory -Path $outputsFolder | Out-Null
+    }
+    # Get latest deployment name
+    $deploymentName = az deployment group list --resource-group $ResourceGroupName --query "sort_by([].{name:name, ts:properties.timestamp}, &ts)[-1].name" -o tsv
+    if ($deploymentName) {
+        $outputsJson = az deployment group show -g $ResourceGroupName -n $deploymentName --query properties.outputs -o json
+        if ($outputsJson) {
+            $outputsFile = Join-Path $outputsFolder "$templateBaseName.outputs.json"
+            Set-Content -Path $outputsFile -Value $outputsJson -Encoding UTF8
+            Write-Host "Deployment outputs saved to: $outputsFile"
+        } else {
+            Write-Host "No outputs found for deployment."
+        }
+    } else {
+        Write-Host "Could not determine deployment name to fetch outputs."
+    }
+}
+
 Write-Host "Deployment finished."
