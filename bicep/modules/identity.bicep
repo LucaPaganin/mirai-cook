@@ -1,25 +1,27 @@
-@description('Unique prefix for resources (e.g. abbreviated project name)')
-param prefix string = 'miraicook'
-
-@description('Azure location where to create the resource (e.g. resourceGroup().location)')
+@description('Azure region where the User-Assigned Managed Identity will be created. Defaults to the resource group location.')
 param location string = resourceGroup().location
 
-// Builds a unique name for the identity
-var userAssignedIdentityName = '${prefix}-identity-${uniqueString(resourceGroup().id)}'
+@description('The name for the User-Assigned Managed Identity. Should be unique within the resource group.')
+param identityName string
 
-resource userAssignedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
-  name: userAssignedIdentityName
+@description('Tags to apply to the Managed Identity.')
+param tags object = {}
+
+@description('User-Assigned Managed Identity resource.')
+resource managedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
+  name: identityName
   location: location
+  tags: tags
 }
 
-@description('Principal ID (Object ID) of the created Managed Identity. Use this to assign roles.')
-output identityPrincipalId string = userAssignedIdentity.properties.principalId
+@description('The Principal ID (Object ID of the service principal) for the Managed Identity.')
+output identityPrincipalId string = managedIdentity.properties.principalId
 
-@description('Client ID of the created Managed Identity.')
-output identityClientId string = userAssignedIdentity.properties.clientId
+@description('The Client ID for the Managed Identity.')
+output identityClientId string = managedIdentity.properties.clientId
 
-@description('Full Resource ID of the created Managed Identity.')
-output identityResourceId string = userAssignedIdentity.id
+@description('The name of the created Managed Identity.')
+output identityName string = managedIdentity.name
 
-@description('Name of the created Managed Identity.')
-output identityName string = userAssignedIdentity.name
+@description('The resource ID of the created Managed Identity.')
+output identityResourceId string = managedIdentity.id
