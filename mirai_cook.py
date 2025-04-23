@@ -2,7 +2,7 @@
 """
 Main entry point for the Mirai Cook Streamlit application.
 This script sets up the page configuration, initializes Azure clients
-via session state, and displays the home/welcome page.
+via session state, displays the home/welcome page, and shows client status.
 Page-specific logic resides in the 'pages/' directory.
 """
 
@@ -17,18 +17,32 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '.'))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-# --- Import Initialization Function ---
+# --- Import Initialization Function and Keys ---
 try:
-    # Import the function and the session state key
-    from src.azure_clients import initialize_clients_in_session_state, SESSION_STATE_CLIENTS_INITIALIZED
+    # Import the function and the session state keys
+    from src.azure_clients import (
+        initialize_clients_in_session_state,
+        SESSION_STATE_CLIENTS_INITIALIZED,
+        # Import keys for individual clients to check status
+        SESSION_STATE_COSMOS_CLIENT,
+        SESSION_STATE_RECIPE_CONTAINER,
+        SESSION_STATE_PANTRY_CONTAINER,
+        SESSION_STATE_INGREDIENT_CONTAINER,
+        SESSION_STATE_OPENAI_CLIENT,
+        SESSION_STATE_LANGUAGE_CLIENT,
+        SESSION_STATE_VISION_CLIENT,
+        SESSION_STATE_DOC_INTEL_CLIENT,
+        SESSION_STATE_SPEECH_CONFIG,
+        SESSION_STATE_SEARCH_CLIENT, # Although not initialized by default here
+        SESSION_STATE_BLOB_CLIENT
+    )
 except ImportError as e:
     # Use st.exception to show the error directly in the app during development
-    st.exception(f"Fatal Error: Could not import 'initialize_clients_in_session_state' from src.azure_clients. Check PYTHONPATH and file location. Error: {e}")
+    st.exception(f"Fatal Error: Could not import from src.azure_clients. Check PYTHONPATH and file location. Error: {e}")
     # Stop the app if core initialization is missing
     st.stop()
 
 # --- Configure Logging ---
-# Basic config here, might be refined later
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 # Reduce Azure SDK verbosity
@@ -37,7 +51,6 @@ logging.getLogger("azure.identity._internal.managed_identity_client").setLevel(l
 
 
 # --- Page Configuration (Must be the first Streamlit command) ---
-# Use try-except in case it's already set by another page (though less likely for the main script)
 try:
     st.set_page_config(
         page_title="Mirai Cook AI",
@@ -91,23 +104,58 @@ st.title("Welcome to Mirai Cook! 🍳🤖")
 st.markdown("""
 Your personal and intelligent AI culinary assistant.
 
-**Explore the sections using the menu in the sidebar on the left:**
-
-* **Recipe Book:** Browse, search, and view your saved recipes.
-* **Add/Edit Recipe:** Manually enter new recipes or modify existing ones.
-* **Import Recipe:** Add recipes by digitizing from images/PDFs or importing from URLs.
-* **Pantry Management:** Keep track of the ingredients you have available.
-* **Ingredient Management:** View and manage the master list of ingredients known to the app.
-* **AI Suggestions:** Ask the AI what to cook based on your cookbook and pantry, or have it generate entirely new recipes.
-* **Advanced Search:** Use the power of Azure AI Search to find recipes in your database.
-
-*(This is the main page. Specific logic for each section is in the corresponding files within the `pages/` folder.)*
+**Explore the sections using the menu in the sidebar on the left.**
 """)
+# Removed the list of features from here as they are in the sidebar navigation
+
+# --- Display Client Initialization Status ---
+st.sidebar.divider() # Add a separator in the sidebar
+st.sidebar.subheader("Azure Service Status")
+
+# Define which clients to check and their user-friendly names
+clients_to_check = {
+    "Cosmos DB (Recipes)": SESSION_STATE_RECIPE_CONTAINER,
+    "Cosmos DB (Pantry)": SESSION_STATE_PANTRY_CONTAINER,
+    "Cosmos DB (Ingredients)": SESSION_STATE_INGREDIENT_CONTAINER,
+    "Azure OpenAI": SESSION_STATE_OPENAI_CLIENT,
+    "AI Language": SESSION_STATE_LANGUAGE_CLIENT,
+    "AI Vision": SESSION_STATE_VISION_CLIENT,
+    "AI Document Intelligence": SESSION_STATE_DOC_INTEL_CLIENT,
+    "AI Speech": SESSION_STATE_SPEECH_CONFIG,
+    "Blob Storage": SESSION_STATE_BLOB_CLIENT,
+    # "AI Search": SESSION_STATE_SEARCH_CLIENT # Search client initialized later
+}
+
+# Check the global initialization flag first
+init_overall_status = st.session_state.get(SESSION_STATE_CLIENTS_INITIALIZED)
+
+if init_overall_status is None:
+    st.sidebar.warning("Initializing connections...")
+elif init_overall_status is False:
+    st.sidebar.error("Initialization failed. Check logs.")
+else:
+    # Initialization was attempted and potentially partially successful
+    all_ok = True
+    for display_name, session_key in clients_to_check.items():
+        client = st.session_state.get(session_key)
+        if client:
+            st.sidebar.markdown(f"- {display_name}: <span style='color:green;'>● Connected</span>", unsafe_allow_html=True)
+        else:
+            st.sidebar.markdown(f"- {display_name}: <span style='color:red;'>○ Failed/Unavailable</span>", unsafe_allow_html=True)
+            all_ok = False
+    if all_ok:
+        st.sidebar.success("All core services connected.")
+    else:
+        st.sidebar.warning("Some services failed to connect.")
+
 
 # Display a status indicator in the sidebar based on initialization success
+# Moved the simple status here, below the detailed list
+st.sidebar.divider()
 if initialization_success:
-    st.sidebar.success("Azure services connected. Select a page.")
+    st.sidebar.markdown("✅ **Status:** Ready")
 else:
-    st.sidebar.error("Azure connection failed. App may be limited.")
+    st.sidebar.markdown("⚠️ **Status:** Connection Issues")
+
 
 # --- End of Main Page Script ---
