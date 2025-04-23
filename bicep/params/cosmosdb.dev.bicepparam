@@ -26,5 +26,5 @@ param consistencyLevel = 'Session' // Explicitly set consistency level (Session 
 // IMPORTANT: Replace the empty string with the ACTUAL Principal ID of your User-Assigned Managed Identity
 // if you want to enable RBAC access for it. If left empty, the role assignment will be skipped.
 // You typically get this ID from the output of the identity.bicep deployment.
-param managedIdentityPrincipalId = '' // Example: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'
+param managedIdentityPrincipalId = '85264679-13ab-4eb6-a13b-e357e6dde820' // Example: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'
 
