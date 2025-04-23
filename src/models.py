@@ -5,6 +5,7 @@ Queste classi definiscono la struttura, i tipi e la validazione
 per le entità principali gestite dall'applicazione (Ricette, Ingredienti, etc.).
 Versione finale senza codice commentato di esempio.
 Funzione sanitize_for_id aggiornata per usare unidecode.
+Aggiunti campi difficulty, num_people, season a Recipe.
 """
 
 from pydantic import BaseModel, Field, model_validator
@@ -27,14 +28,14 @@ def sanitize_for_id(name: str) -> str:
     """
     if not name:
         # Genera un UUID se il nome è vuoto per evitare ID vuoti
-        logger.warning("Tentativo di sanitizzare un nome vuoto, genero UUID.")
+        logger.warning("Attempting to sanitize an empty name, generating UUID.")
         return f"ingredient_{uuid.uuid4()}"
 
     # 1. Traslittera caratteri Unicode in ASCII (es. à -> a, ç -> c)
     try:
         s = unidecode(name)
     except Exception as e:
-        logger.error(f"Errore durante l'applicazione di unidecode al nome '{name}': {e}. Procedo senza unidecode.")
+        logger.error(f"Error applying unidecode to name '{name}': {e}. Proceeding without unidecode.")
         s = name # Fallback al nome originale in caso di errore di unidecode
 
     # 2. Converti in minuscolo
@@ -49,16 +50,16 @@ def sanitize_for_id(name: str) -> str:
 
     # 5. Assicura che non sia vuoto dopo la sanitizzazione
     if not s:
-        logger.warning(f"Nome '{name}' risultato vuoto dopo sanitizzazione con unidecode, genero UUID.")
+        logger.warning(f"Name '{name}' resulted empty after sanitization with unidecode, generating UUID.")
         return f"ingredient_{uuid.uuid4()}"
 
-    logger.debug(f"Nome '{name}' sanitizzato in ID: '{s}'")
+    logger.debug(f"Name '{name}' sanitized to ID: '{s}'")
     return s
 
 # --- Funzione Helper per Normalizzazione Nome ---
 # (Questa rimane invariata, usata per la ricerca/similarità, non per l'ID)
 def _normalize_name_for_search(name: str) -> str:
-    """Normalizza un nome per la ricerca/confronto (minuscolo, spazi singoli)."""
+    """Normalizes a name for searching/comparison (lowercase, single spaces)."""
     if not name:
         return ""
     normalized = " ".join(name.lower().split())
@@ -68,35 +69,37 @@ def _normalize_name_for_search(name: str) -> str:
 
 class IngredientEntity(BaseModel):
     """
-    Rappresenta un ingrediente canonico nella Master List.
-    L'ID è il nome sanitizzato e funge da chiave primaria/partition key.
-    Utilizza Pydantic V2.
+    Represents a canonical ingredient in the Master List.
+    The ID is the sanitized name and serves as the primary/partition key.
+    Uses Pydantic V2.
     """
-    id: str = Field(..., description="ID univoco e immutabile (nome sanitizzato), Partition Key.")
-    displayName: str = Field(..., description="Nome visualizzato all'utente, modificabile.")
-    usage_count: int = Field(default=1, description="Conteggio di quante ricette usano questo ingrediente.")
-    calories_per_100g: Optional[float] = Field(default=None, description="Calorie cachate per 100g (o unità standard).", ge=0)
-    calorie_data_source: Optional[str] = Field(default=None, description="Fonte del dato calorico (es. OpenFoodFacts, USDA, Manuale).")
-    calorie_last_updated: Optional[datetime] = Field(default=None, description="Timestamp ultimo aggiornamento calorie (UTC).")
-    normalized_search_name: Optional[str] = Field(default=None, description="Versione normalizzata del displayName per ricerche interne.")
+    id: str = Field(..., description="Unique and immutable ID (sanitized name), Partition Key.")
+    displayName: str = Field(..., description="User-facing display name, editable.")
+    usage_count: int = Field(default=1, description="Count of recipes using this ingredient.")
+    calories_per_100g: Optional[float] = Field(default=None, description="Cached calories per 100g (or standard unit).", ge=0)
+    calorie_data_source: Optional[str] = Field(default=None, description="Source of the calorie data (e.g., OpenFoodFacts, USDA, Manual).")
+    calorie_last_updated: Optional[datetime] = Field(default=None, description="Timestamp of the last calorie data update (UTC).")
+    normalized_search_name: Optional[str] = Field(default=None, description="Normalized version of displayName for internal searches.")
 
     @model_validator(mode='before')
     @classmethod
     def set_id_and_normalized_name(cls, data: Any) -> Any:
         """
-        Validatore eseguito prima della validazione standard per:
-        1. Generare 'id' da 'displayName' se 'id' non è fornito (usa sanitize_for_id aggiornata).
-        2. Generare 'normalized_search_name' da 'displayName' se non fornito.
+        Validator executed before standard validation to:
+        1. Generate 'id' from 'displayName' if 'id' is not provided.
+        2. Generate 'normalized_search_name' from 'displayName' if not provided.
         """
         if isinstance(data, dict):
             processed_data = data.copy()
             display_name = processed_data.get('displayName')
 
             if processed_data.get('id') is None and display_name:
-                processed_data['id'] = sanitize_for_id(display_name) # Usa la nuova funzione
+                processed_data['id'] = sanitize_for_id(display_name)
+                logger.debug(f"Generated id '{processed_data['id']}' from displayName '{display_name}'")
 
             if processed_data.get('normalized_search_name') is None and display_name:
                 processed_data['normalized_search_name'] = _normalize_name_for_search(display_name)
+                logger.debug(f"Generated normalized_search_name '{processed_data['normalized_search_name']}' from displayName '{display_name}'")
 
             return processed_data
         return data
@@ -104,47 +107,58 @@ class IngredientEntity(BaseModel):
 
 class IngredientItem(BaseModel):
     """
-    Rappresenta una riga ingrediente all'interno di una specifica Ricetta.
-    Contiene quantità, unità e il riferimento all'IngredientEntity tramite ID.
-    Utilizza Pydantic V2.
+    Represents an ingredient line item within a specific Recipe.
+    Contains quantity, unit, and the reference to the IngredientEntity via ID.
+    Uses Pydantic V2.
     """
-    ingredient_id: str = Field(..., description="ID dell'IngredientEntity corrispondente.")
-    quantity: Optional[float] = Field(default=None, description="Quantità numerica (opzionale per 'q.b.', etc.).", ge=0)
-    unit: Optional[str] = Field(default=None, description="Unità di misura (es. g, ml, cucchiaio, pezzo).")
-    notes: Optional[str] = Field(default=None, description="Note aggiuntive (es. tritata finemente).")
+    ingredient_id: str = Field(..., description="ID of the corresponding IngredientEntity.")
+    quantity: Optional[float] = Field(default=None, description="Numeric quantity (optional for 'q.b.', etc.).", ge=0)
+    unit: Optional[str] = Field(default=None, description="Unit of measure (e.g., g, ml, tbsp, piece).")
+    notes: Optional[str] = Field(default=None, description="Additional notes (e.g., finely chopped).")
 
 
 class Recipe(BaseModel):
     """
-    Rappresenta una ricetta completa nel Ricettario.
-    L'ID è la chiave primaria e la Partition Key per il container Recipes.
-    Utilizza Pydantic V2.
+    Represents a complete recipe in the Cookbook.
+    The ID is the primary key and Partition Key for the Recipes container.
+    Uses Pydantic V2. Includes difficulty, num_people, season.
     """
-    id: str = Field(default_factory=lambda: f"recipe_{uuid.uuid4()}", description="ID univoco della ricetta, Partition Key.")
-    title: str = Field(..., min_length=1, description="Titolo della ricetta.")
-    instructions: str = Field(..., min_length=1, description="Testo delle istruzioni.")
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Timestamp creazione (UTC).")
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Timestamp ultima modifica (UTC).")
-    ingredients: List[IngredientItem] = Field(default=[], description="Lista strutturata degli ingredienti.")
-    portata_category: Optional[str] = Field(default=None, description="Categoria di portata confermata dall'utente.")
-    ai_suggested_categories: List[str] = Field(default=[], description="Categorie suggerite dall'AI (per riferimento).")
-    source_url: Optional[str] = Field(default=None, description="URL di origine se importata.")
-    source_type: Optional[str] = Field(default=None, description="Origine: Manuale, Digitalizzata, Importata, Generata AI.")
-    image_url: Optional[str] = Field(default=None, description="URL dell'immagine del piatto finito (in Blob Storage).")
-    image_tags: List[str] = Field(default=[], description="Tag estratti dall'immagine (AI Vision).")
-    image_description: Optional[str] = Field(default=None, description="Didascalia generata per l'immagine (AI Vision).")
-    prep_time_minutes: Optional[int] = Field(default=None, ge=0, description="Tempo di preparazione stimato in minuti.")
-    cook_time_minutes: Optional[int] = Field(default=None, ge=0, description="Tempo di cottura stimato in minuti.")
-    total_calories_estimated: Optional[int] = Field(default=None, ge=0, description="Stima calorie totali calcolate.")
+    # Core fields
+    id: str = Field(default_factory=lambda: f"recipe_{uuid.uuid4()}", description="Unique recipe ID, Partition Key.")
+    title: str = Field(..., min_length=1, description="Title of the recipe.")
+    instructions: str = Field(..., min_length=1, description="Instructions text.")
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Creation timestamp (UTC).")
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Last modification timestamp (UTC).")
+
+    # Structured data
+    ingredients: List[IngredientItem] = Field(default=[], description="Structured list of ingredients.")
+    portata_category: Optional[str] = Field(default=None, description="Course category confirmed by the user.")
+
+    # --- NEW FIELDS ---
+    num_people: Optional[int] = Field(default=None, ge=1, description="Number of people the recipe serves.")
+    difficulty: Optional[str] = Field(default=None, description="Recipe difficulty level (e.g., Easy, Medium, Hard).")
+    season: Optional[str] = Field(default=None, description="Best season for the recipe (e.g., Spring, Summer, All).")
+    # --- END NEW FIELDS ---
+
+    # AI and Metadata
+    ai_suggested_categories: List[str] = Field(default=[], description="AI-suggested categories (for reference).")
+    source_url: Optional[str] = Field(default=None, description="Origin URL if imported.")
+    source_type: Optional[str] = Field(default=None, description="Origin: Manual, Digitized, Imported, AI Generated.")
+    image_url: Optional[str] = Field(default=None, description="URL of the finished dish photo (in Blob Storage).")
+    image_tags: List[str] = Field(default=[], description="Tags extracted from the image (AI Vision).")
+    image_description: Optional[str] = Field(default=None, description="Caption generated for the image (AI Vision).")
+    prep_time_minutes: Optional[int] = Field(default=None, ge=0, description="Estimated preparation time in minutes.")
+    cook_time_minutes: Optional[int] = Field(default=None, ge=0, description="Estimated cooking time in minutes.")
+    total_calories_estimated: Optional[int] = Field(default=None, ge=0, description="Estimated total calories calculated.")
 
 
 class Pantry(BaseModel):
     """
-    Rappresenta la dispensa dell'utente (singolo utente in questa versione).
-    Contiene la lista degli ID degli ingredienti disponibili.
-    Utilizza Pydantic V2.
+    Represents the user's pantry (single user in this version).
+    Contains the list of available ingredient IDs.
+    Uses Pydantic V2.
     """
-    id: str = Field(default="pantry_default", description="ID fisso per la dispensa dell'utente unico, Partition Key.")
-    ingredient_ids: List[str] = Field(default=[], description="Lista degli ingredient_id presenti in dispensa.")
-    last_updated: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Timestamp ultimo aggiornamento (UTC).")
+    id: str = Field(default="pantry_default", description="Fixed ID for the single user pantry, Partition Key.")
+    ingredient_ids: List[str] = Field(default=[], description="List of ingredient_ids present in the pantry.")
+    last_updated: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Last update timestamp (UTC).")
 

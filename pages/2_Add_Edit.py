@@ -2,6 +2,7 @@
 """
 Streamlit page for manually adding or editing recipes in Mirai Cook.
 Focuses on the UI structure and basic form submission flow.
+Includes fields for difficulty, servings, and season.
 Includes improved check for necessary Azure clients.
 """
 
@@ -32,7 +33,7 @@ try:
     from src.azure_clients import (
         SESSION_STATE_RECIPE_CONTAINER,
         SESSION_STATE_INGREDIENT_CONTAINER,
-        SESSION_STATE_CLIENTS_INITIALIZED, # Still useful to know overall status
+        SESSION_STATE_CLIENTS_INITIALIZED,
         # SESSION_STATE_LANGUAGE_CLIENT # Uncomment when needed for category
     )
     # from src.ai_services import get_category_suggestion # Uncomment when implemented
@@ -101,11 +102,25 @@ with st.form("recipe_form", clear_on_submit=True): # Clear form on successful su
     recipe_title = st.text_input("Recipe Title*", placeholder="E.g., Pasta al Pesto Genovese")
     recipe_instructions = st.text_area("Instructions*", height=300, placeholder="Describe the preparation steps...")
 
-    # Optional fields
-    col1, col2 = st.columns(2)
+    # --- NEW FIELDS WIDGETS ---
+    col1, col2, col3 = st.columns(3)
     with col1:
-        prep_time = st.number_input("Prep Time (minutes)", min_value=0, step=5, value=None, key="prep_time")
+        num_people = st.number_input("Servings (People)", min_value=1, step=1, value=None, key="num_people", help="How many people does this recipe serve?")
     with col2:
+        # Using selectbox for predefined difficulty
+        difficulty_options = ["", "Easy", "Medium", "Hard", "Expert"] # Added Expert
+        difficulty = st.selectbox("Difficulty", options=difficulty_options, index=0, key="difficulty", help="Select the estimated difficulty.")
+    with col3:
+        # Using selectbox for season
+        season_options = ["", "Any", "Spring", "Summer", "Autumn", "Winter"]
+        season = st.selectbox("Best Season", options=season_options, index=0, key="season", help="Select the best season for this recipe.")
+    # --- END NEW FIELDS WIDGETS ---
+
+    # Optional fields
+    col_prep, col_cook = st.columns(2)
+    with col_prep:
+        prep_time = st.number_input("Prep Time (minutes)", min_value=0, step=5, value=None, key="prep_time")
+    with col_cook:
         cook_time = st.number_input("Cook Time (minutes)", min_value=0, step=5, value=None, key="cook_time")
 
     st.divider()
@@ -135,7 +150,7 @@ with st.form("recipe_form", clear_on_submit=True): # Clear form on successful su
 
     st.markdown("**Category:** (Automatic suggestion and selection to be added)")
     # Example: Manual selection for now
-    portata_category_manual = st.selectbox("Recipe Category (Manual)", ["Antipasto", "Primo", "Secondo", "Contorno", "Dolce", "Piatto Unico", "Altro"], index=None, placeholder="Select category...")
+    portata_category_manual = st.selectbox("Recipe Category (Manual)", ["", "Antipasto", "Primo", "Secondo", "Contorno", "Dolce", "Piatto Unico", "Altro"], index=0, placeholder="Select category...", key="porta_cat")
 
 
     st.divider()
@@ -154,6 +169,14 @@ if submitted:
     title = recipe_title
     instructions = recipe_instructions
     ingredients_data = edited_ingredients_df.copy() # Work on a copy
+    # Retrieve new fields, handle empty selection from selectbox (returns "")
+    num_people_val = int(num_people) if num_people is not None else None
+    difficulty_val = difficulty if difficulty else None # Store None if empty string selected
+    season_val = season if season else None # Store None if empty string selected
+    portata_category_val = portata_category_manual if portata_category_manual else None # Store None if empty string selected
+    prep_time_val = int(prep_time) if prep_time is not None else None
+    cook_time_val = int(cook_time) if cook_time is not None else None
+
 
     # 2. Basic Validation
     validation_ok = True
@@ -221,6 +244,7 @@ if submitted:
                             if saved_entity:
                                 confirmed_ingredient_id = saved_entity.id
                                 logger.info(f"Created new IngredientEntity: {confirmed_ingredient_id}")
+                                # TODO: Potentially trigger calorie lookup here or later async
                             else:
                                 st.error(f"Failed to create master entry for ingredient: '{name}'.")
                                 all_ingredients_processed_successfully = False
@@ -242,7 +266,6 @@ if submitted:
                             notes=str(notes).strip() if pd.notna(notes) else None
                         )
                         ingredient_items_list.append(ingredient_item)
-
                 # --- End of Ingredient Loop ---
 
             if not all_ingredients_processed_successfully:
@@ -253,31 +276,38 @@ if submitted:
 
                 # 4. Get Category (Using manual selection for now)
                 # TODO: Replace with AI suggestion + HITL later
-                confirmed_category = portata_category_manual # Get value from the selectbox
+                confirmed_category = portata_category_val # Get value from the selectbox
                 logger.info(f"Using category: {confirmed_category}")
 
-                # 5. Create Recipe Pydantic Object
+                # 5. Create Recipe Pydantic Object (Including new fields)
                 logger.info("Creating final Recipe object...")
                 try:
+                    current_time_utc = datetime.now(timezone.utc)
                     new_recipe = Recipe(
                         title=title.strip(),
                         instructions=instructions.strip(),
                         ingredients=ingredient_items_list,
                         portata_category=confirmed_category,
+                        num_people=num_people_val, # Add new field
+                        difficulty=difficulty_val, # Add new field
+                        season=season_val,         # Add new field
+                        prep_time_minutes=prep_time_val,
+                        cook_time_minutes=cook_time_val,
                         source_type="Manuale",
-                        prep_time_minutes=int(prep_time) if pd.notna(prep_time) else None,
-                        cook_time_minutes=int(cook_time) if pd.notna(cook_time) else None,
-                        updated_at=datetime.now(timezone.utc) # Explicitly set update time
+                        created_at=current_time_utc, # Set creation time
+                        updated_at=current_time_utc  # Set update time initially
                     )
                     logger.debug(f"Recipe object details: {new_recipe.model_dump(exclude={'ingredients'})}")
 
                     # 6. Save Recipe to Cosmos DB
                     logger.info("Attempting to save recipe to database...")
                     with st.spinner("Saving recipe..."):
-                        # Ensure recipe_container is available
                         if not recipe_container:
                              st.error("Recipe container client is not available. Cannot save.")
                              raise ValueError("Recipe container client is missing.")
+                        # Ensure updated_at is set correctly for updates if editing later
+                        # For new recipes, Pydantic default is fine, but explicit set is clear
+                        new_recipe.updated_at = datetime.now(timezone.utc)
                         saved_recipe = save_recipe(recipe_container, new_recipe)
 
                     if saved_recipe:
@@ -287,9 +317,8 @@ if submitted:
                         st.session_state['manual_ingredients_df'] = pd.DataFrame(
                             [], columns=["Quantity", "Unit", "Ingredient Name", "Notes"]
                         )
-                        st.session_state['confirmed_ingredient_map'] = {} # Clear confirmed map too
-                        # Use st.rerun() to reset the form fields effectively
-                        st.rerun()
+                        st.session_state['confirmed_ingredient_map'] = {}
+                        st.rerun() # Rerun to clear form and show success
                     else:
                         st.error("Failed to save the recipe to the database. Please check logs.")
                         logger.error("Failed to save recipe object to Cosmos DB.")

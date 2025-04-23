@@ -20,12 +20,12 @@
     on the specified Key Vault (e.g., Key Vault Secrets Officer role).
 #>
 param(
-    [Parameter(Mandatory=$true)]
-    [string]$VaultName,
+    [Parameter(Mandatory=$false)]
+    [string]$VaultName="miraicook-kv-pimyxjyyo7",
 
     [Parameter(Mandatory=$false)]
     [ValidateScript({ Test-Path -Path $_ -PathType Leaf })]
-    [string]$JsonFilePath=".\secrets.json"
+    [string]$JsonFilePath=".\scripts\secrets.json"
 )
 
 # --- Verifica Login Azure (Controllo base) ---
