@@ -77,9 +77,9 @@ default_keys = [
     'form_default_title', 'form_default_instructions', 'form_default_num_people',
     'form_default_total_time', 'imported_image_url', 'original_source_type',
     'original_source_url', 'confirmed_ingredient_map', 'form_default_difficulty',
-    'form_default_season', 'form_default_category' # Added category default key
+    'form_default_season', 'form_default_category', 'form_default_drink' # Added drink default key
 ]
-default_values = ["", "", None, None, None, 'Manuale', None, {}, '', '', ''] # Added default for category
+default_values = ["", "", None, None, None, 'Manuale', None, {}, '', '', '', ''] # Added default for category and drink
 for key, default_value in zip(default_keys, default_values):
     if key not in st.session_state: st.session_state[key] = default_value
 if 'manual_ingredients_df' not in st.session_state:
@@ -107,9 +107,12 @@ if imported_data:
     except (ValueError, TypeError):
          st.session_state['form_default_total_time'] = None
          logger.warning(f"Could not convert imported total_time '{total_time_raw}' to integer.")
-    # Pre-populate category (assuming 'category' key exists in imported_data)
-    st.session_state['form_default_category'] = imported_data.get('category', '') # Use empty string if not found
+    # Pre-populate category (assuming 'category' key might exist in imported_data)
+    st.session_state['form_default_category'] = imported_data.get('category', '')
     logger.info(f"Imported category: '{st.session_state['form_default_category']}'")
+    # Pre-populate drink (assuming 'drink' key might exist in imported_data)
+    st.session_state['form_default_drink'] = imported_data.get('drink', '')
+    logger.info(f"Imported drink pairing: '{st.session_state['form_default_drink']}'")
 
 
     # --- Use the PARSED ingredients ---
@@ -163,7 +166,8 @@ current_default_num_people = st.session_state.get('form_default_num_people')
 current_default_total_time = st.session_state.get('form_default_total_time')
 current_default_difficulty = st.session_state.get('form_default_difficulty', '')
 current_default_season = st.session_state.get('form_default_season', '')
-current_default_category = st.session_state.get('form_default_category', '') # Get default category
+current_default_category = st.session_state.get('form_default_category', '')
+current_default_drink = st.session_state.get('form_default_drink', '') # Get default drink
 
 
 # --- Display Imported Image (if available) ---
@@ -198,10 +202,11 @@ with st.form("recipe_form", clear_on_submit=True):
     # Single Time Input
     total_time = st.number_input("Total Time (prep + cook, minutes)", min_value=0, step=5, value=current_default_total_time, key="total_time")
 
-    # --- Category Input ---
-    # Changed from selectbox to text_input, uses default value
+    # Category Input
     category = st.text_input("Category", value=current_default_category, placeholder="e.g., Primo, Main Course, Dessert", key="category_input")
-    # --- END Category Input ---
+
+    # Drink Pairing Input
+    drink_pairing = st.text_input("Suggested Drink Pairing (Optional)", value=current_default_drink, placeholder="e.g., Chianti Classico, Sauvignon Blanc, Beer", key="drink_input")
 
     st.divider()
 
@@ -222,6 +227,10 @@ with st.form("recipe_form", clear_on_submit=True):
 
     st.caption("* Quantity and Ingredient Name are required.")
     st.divider()
+    # Removed manual category selectbox as it's now a text input above
+    # st.markdown("**Category:** (Automatic suggestion and selection to be added)")
+    # portata_category_manual = st.selectbox("Recipe Category (Manual)", ["", "Antipasto", "Primo", "Secondo", "Contorno", "Dolce", "Piatto Unico", "Altro"], index=0, placeholder="Select category...", key="porta_cat")
+    # st.divider()
     submitted = st.form_submit_button("💾 Save Recipe")
 
 # --- Form Submission Logic ---
@@ -239,6 +248,7 @@ if submitted:
     season_val = season if season else None
     category_val = category.strip() if category else None # Get value from text_input
     total_time_val = int(total_time) if total_time is not None else None
+    drink_val = drink_pairing.strip() if drink_pairing else None # Get drink value
     final_image_url = st.session_state.get('imported_image_url') # Get potentially imported URL
     # TODO: Add logic for handling NEW photo_upload widget value
 
@@ -265,7 +275,8 @@ if submitted:
         st.session_state['form_default_total_time'] = total_time # Store raw value from widget
         st.session_state['form_default_difficulty'] = difficulty # Store raw value from widget
         st.session_state['form_default_season'] = season # Store raw value from widget
-        st.session_state['form_default_category'] = category # Store category too
+        st.session_state['form_default_category'] = category # Store category
+        st.session_state['form_default_drink'] = drink_pairing # Store drink too
         # manual_ingredients_df is already updated
 
     if validation_ok:
@@ -326,6 +337,7 @@ if submitted:
                         difficulty=difficulty_val,
                         season=season_val,
                         total_time_minutes=total_time_val,
+                        drink=drink_val, # Add the drink value
                         source_type=source_type_final,
                         source_url=source_url_final,
                         image_url=final_image_url,
@@ -354,6 +366,7 @@ if submitted:
                         st.session_state['form_default_difficulty'] = ''
                         st.session_state['form_default_season'] = ''
                         st.session_state['form_default_category'] = '' # Clear category default
+                        st.session_state['form_default_drink'] = '' # Clear drink default
 
                         st.rerun() # Reset form and show success
                     else:
@@ -366,6 +379,7 @@ if submitted:
                         st.session_state['form_default_difficulty'] = difficulty
                         st.session_state['form_default_season'] = season
                         st.session_state['form_default_category'] = category # Store category
+                        st.session_state['form_default_drink'] = drink_pairing # Store drink
 
                 except Exception as model_error:
                      st.error(f"Error creating recipe data: {model_error}")
@@ -374,6 +388,5 @@ if submitted:
             st.error(f"An unexpected error occurred: {e}")
             logger.error(f"Error during recipe processing/saving: {e}", exc_info=True)
 
-# --- Clean up temporary form defaults after rendering ---
-# Removed the cleanup block as state is managed on success/failure now
+# --- No Cleanup block needed at the end ---
 

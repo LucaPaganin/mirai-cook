@@ -17,6 +17,7 @@ from azure.cognitiveservices.speech import SpeechConfig, SpeechSynthesizer, Spee
 from azure.cognitiveservices.speech.audio import AudioConfig, PullAudioInputStream, PushAudioInputStream # For STT streaming
 from openai import AzureOpenAI # Using the 'openai' package configured for Azure
 import io # For handling byte streams
+from src.utils import extract_max_number
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -70,6 +71,46 @@ def analyze_recipe_document(
     except Exception as e:
         logger.error(f"Unexpected error during document analysis: {e}", exc_info=True)
         return None
+
+
+def process_doc_intel_analyze_result(
+    doc_intel_analyze_result: Dict[str, Union[str, Dict[str, str]]],
+    selected_model_id: str
+) -> Dict[str, Optional[Union[str, None]]]:
+    """
+    Process the document intelligence analyze result to extract the text and language.
+    """
+    if not doc_intel_analyze_result:
+        return None, None
+
+    if selected_model_id.startswith("cucina_facile"):
+        result = {
+            "title": doc_intel_analyze_result["title"] if "title" in doc_intel_analyze_result else None,
+            "ingredients": doc_intel_analyze_result["ingredients"] if "ingredients" in doc_intel_analyze_result else None,
+            "instructions": doc_intel_analyze_result["description"] if "description" in doc_intel_analyze_result else None,
+            "total_time": doc_intel_analyze_result["prep_time"] if "prep_time" in doc_intel_analyze_result else None,
+            "category": doc_intel_analyze_result["category"] if "category" in doc_intel_analyze_result else None,
+            "difficulty": doc_intel_analyze_result["difficulty"].count("·") if "difficulty" in doc_intel_analyze_result else None,
+            "drink": doc_intel_analyze_result["wine"] if "wine" in doc_intel_analyze_result else None
+        }
+        result["total_time"] = extract_max_number(result["total_time"]) if result["total_time"] else None
+
+    else:
+        # Extract text and language from the result
+        text = doc_intel_analyze_result.get("text", None)
+        language = doc_intel_analyze_result.get("language", None)
+
+        # If the result is a dictionary, extract the text and language from it
+        if isinstance(doc_intel_analyze_result, dict):
+            text = doc_intel_analyze_result.get("text", text)
+            language = doc_intel_analyze_result.get("language", language)
+        
+        result = {
+            "text": text,
+            "language": language
+        }
+
+    return result
 
 # --- Language Service ---
 

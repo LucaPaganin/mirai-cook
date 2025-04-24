@@ -261,6 +261,26 @@ def parse_servings(yields_string: Optional[str]) -> Optional[int]:
         logger.debug(f"No number found in yields string: '{yields_string}'")
         return None
 
+def extract_max_number(time_str: str) -> float:
+    """
+    Extracts the maximum number from a time string like '15-20 min'.
+    Handles leading/trailing spaces and multiple spaces.
+    Returns the number as float, or None if not found.
+    """
+    if not time_str or not isinstance(time_str, str):
+        return None
+    # Sanitize: strip and collapse multiple spaces
+    sanitized = re.sub(r'\s+', ' ', time_str.strip())
+    # Find all numbers (integers or decimals)
+    numbers = re.findall(r'\d+(?:\.\d+)?', sanitized)
+    if not numbers:
+        return None
+    # Convert to float and return the max
+    return float(max(numbers, key=float))
+
+# Example usage:
+# extract_max_number("  15-20   min ")  # returns 20.0
+
 
 # --- Example Usage (for testing this module directly) ---
 if __name__ == '__main__':
@@ -305,33 +325,3 @@ if __name__ == '__main__':
     for item in test_yields:
         servings = parse_servings(item)
         print(f"Original: '{item}' -> Parsed Servings: {servings}")
-
-
-def process_doc_intel_analyze_result(
-    doc_intel_analyze_result: Dict[str, Union[str, Dict[str, str]]],
-    selected_model_id: str
-) -> Dict[str, Optional[Union[str, None]]]:
-    """
-    Process the document intelligence analyze result to extract the text and language.
-    """
-    if not doc_intel_analyze_result:
-        return None, None
-
-    if selected_model_id.startswith("cucina_facile"):
-        pass
-    else:
-        # Extract text and language from the result
-        text = doc_intel_analyze_result.get("text", None)
-        language = doc_intel_analyze_result.get("language", None)
-
-        # If the result is a dictionary, extract the text and language from it
-        if isinstance(doc_intel_analyze_result, dict):
-            text = doc_intel_analyze_result.get("text", text)
-            language = doc_intel_analyze_result.get("language", language)
-        
-        result = {
-            "text": text,
-            "language": language
-        }
-
-    return result

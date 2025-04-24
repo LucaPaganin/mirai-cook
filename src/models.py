@@ -8,6 +8,7 @@ Funzione sanitize_for_id aggiornata per usare unidecode.
 Aggiunti campi difficulty, num_people, season a Recipe.
 Consolidato prep_time e cook_time in total_time_minutes.
 Rinominato portata_category in category.
+Aggiunto campo opzionale 'drink'.
 """
 
 from pydantic import BaseModel, Field, model_validator
@@ -97,7 +98,7 @@ class IngredientItem(BaseModel):
 class Recipe(BaseModel):
     """
     Represents a complete recipe in the Cookbook.
-    Uses Pydantic V2. Uses total_time_minutes and renamed category field.
+    Uses Pydantic V2. Includes optional drink pairing.
     """
     id: str = Field(default_factory=lambda: f"recipe_{uuid.uuid4()}", description="Unique recipe ID, Partition Key.")
     title: str = Field(..., min_length=1, description="Title of the recipe.")
@@ -105,14 +106,15 @@ class Recipe(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Creation timestamp (UTC).")
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Last modification timestamp (UTC).")
     ingredients: List[IngredientItem] = Field(default=[], description="Structured list of ingredients.")
-    # --- RENAMED FIELD ---
-    category: Optional[str] = Field(default=None, description="Recipe category (e.g., Primo, Dolce, Main Course), user-confirmed or entered.")
-    # --- END RENAMED FIELD ---
+    category: Optional[str] = Field(default=None, description="Recipe category (e.g., Primo, Dolce), user-confirmed or entered.")
     num_people: Optional[int] = Field(default=None, ge=1, description="Number of people the recipe serves.")
     difficulty: Optional[str] = Field(default=None, description="Recipe difficulty level (e.g., Easy, Medium, Hard).")
     season: Optional[str] = Field(default=None, description="Best season for the recipe (e.g., Spring, Summer, All).")
     total_time_minutes: Optional[int] = Field(default=None, ge=0, description="Estimated total time (prep + cook) in minutes.")
-    ai_suggested_categories: List[str] = Field(default=[], description="AI-suggested categories (for reference).") # Keep for potential AI suggestions
+    # --- NEW FIELD ---
+    drink: Optional[str] = Field(default=None, description="Suggested drink pairing for the recipe.")
+    # --- END NEW FIELD ---
+    ai_suggested_categories: List[str] = Field(default=[], description="AI-suggested categories (for reference).")
     source_url: Optional[str] = Field(default=None, description="Origin URL if imported.")
     source_type: Optional[str] = Field(default=None, description="Origin: Manual, Digitized, Imported, AI Generated.")
     image_url: Optional[str] = Field(default=None, description="URL of the finished dish photo (in Blob Storage).")

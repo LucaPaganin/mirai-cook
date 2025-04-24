@@ -29,9 +29,9 @@ try:
     # Import the scraping function
     from src.recipe_scraping import scrape_recipe_metadata
     # Import the ingredient parsing utility
-    from src.utils import parse_ingredient_string, process_doc_intel_analyze_result
+    from src.utils import parse_ingredient_string
     # Import AI functions when implemented
-    from src.ai_services import analyze_recipe_document
+    from src.ai_services import analyze_recipe_document, process_doc_intel_analyze_result
 except ImportError as e:
     st.error(f"Error importing application modules: {e}. Check PYTHONPATH and module locations.")
     st.stop()
@@ -244,10 +244,15 @@ elif import_method == "Document/Image Analysis (Document Intelligence)":
                 # 4. Prepare extracted_data dictionary
                 extracted_data = {
                     'title': analysis_output.get('title'),
-                    'ingredients_text': analysis_output.get('ingredients_block'),
-                    'instructions_text': analysis_output.get('instructions_block'),
+                    'ingredients_text': analysis_output.get('ingredients'),
+                    'instructions_text': analysis_output.get('instructions'),
+                    'total_time': analysis_output.get('total_time'), # Total time if available
+                    'yields': analysis_output.get('yields'), # Yields if available
+                    'difficulty': analysis_output.get('difficulty'), # Difficulty if available
                     'source_type': 'Digitalizzata',
-                    'image_url': None # No image URL from document analysis
+                    'image_url': None,
+                    'drink': analysis_output.get('drink'), # Wine pairing if available
+                    'category': analysis_output.get('category'), # Category if available
                     # Try to extract yields/time too if using custom model
                 }
                 # 5. Process and store if data extracted
