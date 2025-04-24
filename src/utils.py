@@ -237,7 +237,8 @@ if __name__ == '__main__':
         "Eggs 2 large", # New test case
         "Olive Oil 2 tbsp", # New test case
         "Basil 1 bunch", # New test case
-        "g 100 farina" # Should not match Pattern 3/4
+        "g 100 farina",
+        "100 g farina" 
     ]
 
     print("--- Testing Ingredient Parser ---")
