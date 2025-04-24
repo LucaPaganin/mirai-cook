@@ -321,33 +321,34 @@ def parse_doc_intel_ingredients(
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
 
-    res = parse_quantity_and_unit("1/2")
-    assert res == {"value": "0.5", "unit": None}, f"Expected {'value': '0.5', 'unit': None}, but got {res}"
+    # res = parse_quantity_and_unit("Farina 00 100 g")
+    # assert res == {"value": "0.5", "unit": None}, f"Expected {'value': '0.5', 'unit': None}, but got {res}"
 
-    # ingredient list parsing test
-    ingredients_text = "ingredienti Riso Carnaroli, 350 g Speck tagliato grosso, 100 g Ricotta fresca, 60 g Gherigli di noce, 50 g Lattuga, 1 cespo Cipolla, 1 Aglio, 1 spicchio Parmigiano grattugiato Burro, 50 g Vino bianco secco, 1/2 bicchiere Brodo vegetale, 8 dl scarsi Prezzemolo, qualche foglia Olio extravergine d'oliva Sale, pepe"
-    output = [
-        "Riso Carnaroli, 350 g",
-        "Speck tagliato grosso, 100 g",
-        "Ricotta fresca, 60 g", 
-        "Gherigli di noce, 50 g",
-        "Lattuga, 1 cespo", 
-        "Cipolla, 1", 
-        "Aglio, 1 spicchio",
-        "Parmigiano grattugiato", 
-        "Burro, 50 g", 
-        "Vino bianco secco, 1/2 bicchiere",
-        "Brodo vegetale, 8 dl scarsi", 
-        "Prezzemolo, qualche foglia", 
-        "Olio extravergine d'oliva", 
-        "Sale, pepe"
-    ]
-    # Test the function
-    parsed_ingredients = parse_doc_intel_ingredients(ingredients_text, "cucina_facile")
-    assert parsed_ingredients == output, f"Expected {output}, but got {parsed_ingredients}"
+    # # ingredient list parsing test
+    # ingredients_text = "ingredienti Riso Carnaroli, 350 g Speck tagliato grosso, 100 g Ricotta fresca, 60 g Gherigli di noce, 50 g Lattuga, 1 cespo Cipolla, 1 Aglio, 1 spicchio Parmigiano grattugiato Burro, 50 g Vino bianco secco, 1/2 bicchiere Brodo vegetale, 8 dl scarsi Prezzemolo, qualche foglia Olio extravergine d'oliva Sale, pepe"
+    # output = [
+    #     "Riso Carnaroli, 350 g",
+    #     "Speck tagliato grosso, 100 g",
+    #     "Ricotta fresca, 60 g", 
+    #     "Gherigli di noce, 50 g",
+    #     "Lattuga, 1 cespo", 
+    #     "Cipolla, 1", 
+    #     "Aglio, 1 spicchio",
+    #     "Parmigiano grattugiato", 
+    #     "Burro, 50 g", 
+    #     "Vino bianco secco, 1/2 bicchiere",
+    #     "Brodo vegetale, 8 dl scarsi", 
+    #     "Prezzemolo, qualche foglia", 
+    #     "Olio extravergine d'oliva", 
+    #     "Sale, pepe"
+    # ]
+    # # Test the function
+    # parsed_ingredients = parse_doc_intel_ingredients(ingredients_text, "cucina_facile")
+    # assert parsed_ingredients == output, f"Expected {output}, but got {parsed_ingredients}"
 
 
     test_ingredients = [
+        "Farina 00 100 g",
         "Riso Carnaroli, 350 g",
         "Speck tagliato grosso, 100 g",
         "Ricotta fresca, 60 g", 

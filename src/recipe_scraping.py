@@ -39,6 +39,7 @@ def scrape_recipe_metadata(url: str) -> Optional[Dict[str, Any]]:
         scraped_data['title'] = scraper.title()
         scraped_data['total_time'] = scraper.total_time() # Often in minutes
         scraped_data['yields'] = scraper.yields() # e.g., "4 servings"
+        scraped_data['category'] = scraper.category() # e.g., "Pasta"
         scraped_data['ingredients'] = scraper.ingredients() # List[str]
         scraped_data['instructions_list'] = scraper.instructions_list() # List[str]
         # Fallback if instructions_list is empty
