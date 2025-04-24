@@ -38,13 +38,12 @@ COMMON_UNITS = [
 ]
 # Create a regex pattern for units (case-insensitive matching will be handled by flag)
 # Removed (?i) from here
-UNIT_PATTERN = r'\b(?:' + '|'.join(re.escape(unit)
-                                   # Allow optional dot
-                                   for unit in COMMON_UNITS) + r')\b\.?'
+# Build a regex pattern for units (case-insensitive, allows optional trailing dot)
+UNIT_PATTERN = r'(?:' + '|'.join(re.escape(unit) for unit in COMMON_UNITS) + r')\.?'
 
 # Regex pattern for numbers, including fractions and decimals
 # Captures the number part
-NUMBER_PATTERN = r'(\d*[\.,]\d+|\d+\s*\/\s*\d+|\d+\s+\d+\s*\/\s*\d+|\d+)'
+NUMBER_PATTERN = r'(?:\d*[\.,]\d+|\d+\s*\/\s*\d+|\d+\s+\d+\s*\/\s*\d+|\d+)'
 
 # --- Parsing Function ---
 
@@ -81,7 +80,8 @@ def parse_ingredient_string(line: str) -> Dict[str, Optional[Union[float, str]]]
     if notes_match:
         parsed["notes"] = notes_match.group(1).strip()
         line = re.sub(r'\(.*?\)', '', line).strip()
-    line_parts = re.split(r'\s*[,-]\s*', line, 1)
+    # Only split on dashes or commas NOT between digits
+    line_parts = re.split(r'\s*(?<!\d),(?!\d)\s*|\s*-\s*', line, 1)
     line = line_parts[0].strip()
     if len(line_parts) > 1 and parsed["notes"] is None:
         parsed["notes"] = line_parts[1].strip()
@@ -89,43 +89,68 @@ def parse_ingredient_string(line: str) -> Dict[str, Optional[Union[float, str]]]
     # --- Regex Matching Attempts (Order Matters) ---
 
     # Pattern 1: Number Unit Name (e.g., "100 g flour", "1 1/2 cup sugar")
-    # Use flags=re.IGNORECASE instead of inline (?i)
-    pattern1_regex = rf'^\s*({NUMBER_PATTERN})\s*({UNIT_PATTERN})\s+(.*)$'
-    match = re.match(pattern1_regex, line, flags=re.IGNORECASE)
+    qty_unit_name_pattern = (
+        rf'^\s*'
+        rf'(?P<quantity>{NUMBER_PATTERN})\s*'
+        rf'(?P<unit>{UNIT_PATTERN})\s+'
+        rf'(?P<name>.*)$'
+    )
+    match = re.match(qty_unit_name_pattern, line, flags=re.IGNORECASE)
     if match:
         logger.debug("Matched Pattern 1: Number Unit Name")
-        parsed["quantity"] = _parse_quantity(match.group(1))
-        parsed["unit"] = match.group(3).strip().rstrip(
-            '.').lower()  # Group 3 is UNIT_PATTERN
-        parsed["name"] = match.group(4).strip()  # Group 4 is the rest
+        parsed["quantity"] = _parse_quantity(match.group("quantity"))
+        parsed["unit"] = match.group("unit").strip().rstrip('.').lower()
+        parsed["name"] = match.group("name").strip()
         if parsed["unit"] == 'q.b.':
             parsed["unit"] = 'qb'
         return parsed
+    
+    # Pattern X: Unit Quantity Name (e.g., "g 100 farina", "kg 1 zucchero")
+    unit_qty_name_pattern = (
+        rf'^\s*'
+        rf'(?P<unit>{UNIT_PATTERN})\s*'
+        rf'(?P<quantity>{NUMBER_PATTERN})\s+'
+        rf'(?P<name>.*)$'
+    )
+    match = re.match(unit_qty_name_pattern, line, flags=re.IGNORECASE)
+    if match:
+        logger.debug("Matched Pattern X: Unit Quantity Name")
+        parsed["unit"] = match.group("unit").strip().rstrip('.').lower()
+        if parsed["unit"] == 'q.b.':
+            parsed["unit"] = 'qb'
+        parsed["quantity"] = _parse_quantity(match.group("quantity"))
+        parsed["name"] = match.group("name").strip()
+        return parsed
 
     # Pattern 2: Number Name (No recognized unit found after number)
-    # No case flag needed here as UNIT_PATTERN is not used
-    pattern2_regex = rf'^\s*({NUMBER_PATTERN})\s+([^\d].*)$'
-    match = re.match(pattern2_regex, line)
+    qty_name_pattern = (
+        rf'^\s*'
+        rf'(?P<quantity>{NUMBER_PATTERN})\s+'
+        rf'(?P<name>[^\d].*)$'
+    )
+    match = re.match(qty_name_pattern, line)
     if match:
         logger.debug("Matched Pattern 2: Number Name (Unit Optional/Implicit)")
-        parsed["quantity"] = _parse_quantity(match.group(1))
+        parsed["quantity"] = _parse_quantity(match.group("quantity"))
         parsed["unit"] = None
-        parsed["name"] = match.group(3).strip()  # Group 3 is the rest
+        parsed["name"] = match.group("name").strip()
         return parsed
 
     # Pattern 3: Name Number [Unit] [Notes]
-    # Use flags=re.IGNORECASE for the optional unit part
-    pattern3_regex = rf'^(.*?)\s+({NUMBER_PATTERN})\s*({UNIT_PATTERN})?\s*(.*)$'
-    match = re.match(pattern3_regex, line, flags=re.IGNORECASE)
+    name_qty_unit_notes_pattern = (
+        rf'^(?P<name>.*?)\s+'
+        rf'(?P<quantity>{NUMBER_PATTERN})\s*'
+        rf'(?P<unit>{UNIT_PATTERN})?\s*'
+        rf'(?P<notes>.*)$'
+    )
+    match = re.match(name_qty_unit_notes_pattern, line, flags=re.IGNORECASE)
     if match:
         logger.debug("Matched Pattern 3: Name Number [Unit] [Notes]")
-        potential_name = match.group(1).strip()
-        potential_qty = _parse_quantity(match.group(2))
-        potential_unit = match.group(4)  # Group 4 is UNIT_PATTERN capture
-        remaining_text = match.group(5).strip()
+        potential_name = match.group("name").strip()
+        potential_qty = _parse_quantity(match.group("quantity"))
+        potential_unit = match.group("unit")
+        remaining_text = match.group("notes").strip()
 
-        # Check if the potential name makes sense (not just a unit)
-        # Compare lowercase against lowercase list
         if potential_name.lower() not in COMMON_UNITS:
             parsed["name"] = potential_name
             parsed["quantity"] = potential_qty
@@ -134,7 +159,6 @@ def parse_ingredient_string(line: str) -> Dict[str, Optional[Union[float, str]]]
                 if parsed["unit"] == 'q.b.':
                     parsed["unit"] = 'qb'
             else:
-                # No unit explicitly matched after number
                 parsed["unit"] = None
 
             if remaining_text and parsed["notes"] is None:
@@ -147,15 +171,17 @@ def parse_ingredient_string(line: str) -> Dict[str, Optional[Union[float, str]]]
                 "Pattern 3 potential name matched a common unit, skipping.")
 
     # Pattern 4: Name Number (No Unit after number, e.g., "Eggs 2")
-    # No case flag needed
-    pattern4_regex = rf'^(.*?)\s+({NUMBER_PATTERN})\s*$'
-    match = re.match(pattern4_regex, line)
+    name_qty_pattern = (
+        rf'^(?P<name>.*?)\s+'
+        rf'(?P<quantity>{NUMBER_PATTERN})\s*$'
+    )
+    match = re.match(name_qty_pattern, line)
     if match:
         logger.debug("Matched Pattern 4: Name Number")
-        potential_name = match.group(1).strip()
+        potential_name = match.group("name").strip()
         if potential_name.lower() not in COMMON_UNITS:
             parsed["name"] = potential_name
-            parsed["quantity"] = _parse_quantity(match.group(2))
+            parsed["quantity"] = _parse_quantity(match.group("quantity"))
             parsed["unit"] = None
             if parsed["notes"] is None and notes_match:
                 parsed["notes"] = notes_match.group(1).strip()
@@ -164,16 +190,19 @@ def parse_ingredient_string(line: str) -> Dict[str, Optional[Union[float, str]]]
             logger.debug(
                 "Pattern 4 potential name matched a common unit, skipping.")
 
-    # Pattern 5: Unit Name (No Number, e.g., "pinch of salt", "qb sale") - Renumbered
-    # Use flags=re.IGNORECASE
-    pattern5_regex = rf'^\s*({UNIT_PATTERN})\s+(?:of\s+)?(.*)$'
-    match = re.match(pattern5_regex, line, flags=re.IGNORECASE)
+    # Pattern 5: Unit Name (No Number, e.g., "pinch of salt", "qb sale")
+    unit_name_pattern = (
+        rf'^\s*'
+        rf'(?P<unit>{UNIT_PATTERN})\s+'
+        rf'(?:of\s+)?'
+        rf'(?P<name>.*)$'
+    )
+    match = re.match(unit_name_pattern, line, flags=re.IGNORECASE)
     if match:
         logger.debug("Matched Pattern 5: Unit Name")
         parsed["quantity"] = None
-        parsed["unit"] = match.group(1).strip().rstrip(
-            '.').lower()  # Group 1 is UNIT_PATTERN
-        parsed["name"] = match.group(2).strip()  # Group 2 is the rest
+        parsed["unit"] = match.group("unit").strip().rstrip('.').lower()
+        parsed["name"] = match.group("name").strip()
         if parsed["unit"] == 'q.b.':
             parsed["unit"] = 'qb'
         return parsed
@@ -190,7 +219,7 @@ def parse_ingredient_string(line: str) -> Dict[str, Optional[Union[float, str]]]
 
 def _parse_quantity(qty_str: str) -> Optional[float]:
     """Helper function to parse quantity strings into floats."""
-    qty_str = qty_str.strip()
+    qty_str = qty_str.strip().replace(',', '.')
     try:
         if '/' not in qty_str:
             return float(qty_str)
@@ -237,14 +266,32 @@ def parse_servings(yields_string: Optional[str]) -> Optional[int]:
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
     test_ingredients = [
+        "100g burro, ammorbidito",
+        "g 100 farina",
         "Cipolle dorate 1,5 kg",
-        "2 cups all-purpose flour, sifted", "1 1/2 tsp baking soda", "1/2 cup granulated sugar",
-        "100g butter, softened", "2 large eggs", "1 lemon (zest and juice)", "Salt q.b.",
-        "A pinch of nutmeg", "1 kg potatoes", "1.5 liters water", "1/4 lb ground beef",
-        "1 can (14.5 oz) diced tomatoes", "3 cloves garlic, minced", "1/2 etto prosciutto cotto",
-        "Sale e pepe", "Brodo vegetale", "2 mele", "100 farina 00", "Flour 100 g",
+        "2 tazze di farina 00, setacciata",
+        "1 1/2 cucchiaino di bicarbonato di sodio",
+        "1/2 tazza di zucchero semolato",
+        "2 uova grandi",
+        "1 limone (scorza e succo)",
+        "Sale q.b.",
+        "Un pizzico di noce moscata",
+        "1 kg patate",
+        "1,5 litri d'acqua",
+        "1/4 lb carne macinata di manzo",
+        "1 lattina (14,5 oz) di pomodori a cubetti",
+        "3 spicchi d'aglio, tritati",
+        "1/2 etto prosciutto cotto",
+        "Sale e pepe",
+        "Brodo vegetale",
+        "2 mele",
+        "100 farina 00",
+        "Farina 100 g",
         # Test case insensitivity
-        "Eggs 2 large", "Olive Oil 2 tbsp", "Basil 1 bunch", "g 100 farina", "1 TSP Salt"
+        "Uova 2 grandi",
+        "Olio d'oliva 2 cucchiai",
+        "Basilico 1 mazzetto",
+        "1 CUCCHIAINO Sale"
     ]
     print("--- Testing Ingredient Parser ---")
     for item in test_ingredients:

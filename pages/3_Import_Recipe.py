@@ -31,7 +31,7 @@ try:
     # Import the ingredient parsing utility
     from src.utils import parse_ingredient_string
     # Import AI functions when implemented
-    # from src.ai_services import extract_recipe_from_url_ai, analyze_document_for_recipe
+    from src.ai_services import analyze_recipe_document
 except ImportError as e:
     st.error(f"Error importing application modules: {e}. Check PYTHONPATH and module locations.")
     st.stop()
