@@ -65,10 +65,6 @@ def parse_ingredient_string(line: str) -> Dict[str, Optional[Union[float, str]]]
     else:
         line = original_line.strip()
     # # Only split on dashes or commas NOT between digits
-    # line_parts = re.split(r'\s*(?<!\d),(?!\d)\s*|\s*-\s*', line, 1)
-    # line = line_parts[0].strip()
-    # if len(line_parts) > 1 and parsed["notes"] is None:
-    #     parsed["notes"] = line_parts[1].strip()
 
     # --- Pattern dictionary ---
     def process_number_unit_name(match):
@@ -222,7 +218,21 @@ def _parse_quantity(qty_str: str) -> Optional[float]:
             f"Could not parse quantity string: '{qty_str}', Error: {e}")
         return None
 
-# --- NEW FUNCTION ---
+
+def parse_quantity_and_unit(quantity_text: str) -> Optional[Dict[str, str]]:
+    """
+    Separates the quantity from its unit of measure (e.g., "350 g" -> {"value": "350", "unit": "g"}).
+    Handles both dot and comma as decimal separators.
+    """
+    # Regex pattern con named groups per separare quantità e unità
+    # Named groups: 'value' per il numero, 'unit' per l'unità di misura
+    match = re.match(r'(?P<value>\d+([,.]?\d*)?)\s*(?P<unit>\D+)', quantity_text.strip())
+    
+    if match:
+        # Restituisci un dizionario con le informazioni estratte, usando i named groups
+        return {"value": match.group("value").replace(",", "."), "unit": match.group("unit").strip()}
+    
+    return None
 
 
 def parse_servings(yields_string: Optional[str]) -> Optional[int]:
@@ -259,9 +269,6 @@ def extract_max_number(time_str: str) -> float:
         return None
     # Convert to float and return the max
     return float(max(numbers, key=float))
-
-
-
 
 def parse_doc_intel_ingredients(
     ingredients_text: str,
@@ -302,26 +309,26 @@ def parse_doc_intel_ingredients(
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
     # ingredient list parsing test
-    # ingredients_text = "ingredienti Riso Carnaroli, 350 g Speck tagliato grosso, 100 g Ricotta fresca, 60 g Gherigli di noce, 50 g Lattuga, 1 cespo Cipolla, 1 Aglio, 1 spicchio Parmigiano grattugiato Burro, 50 g Vino bianco secco, 1/2 bicchiere Brodo vegetale, 8 dl scarsi Prezzemolo, qualche foglia Olio extravergine d'oliva Sale, pepe"
-    # output = [
-    #     "Riso Carnaroli, 350 g",
-    #     "Speck tagliato grosso, 100 g",
-    #     "Ricotta fresca, 60 g", 
-    #     "Gherigli di noce, 50 g",
-    #     "Lattuga, 1 cespo", 
-    #     "Cipolla, 1", 
-    #     "Aglio, 1 spicchio",
-    #     "Parmigiano grattugiato", 
-    #     "Burro, 50 g", 
-    #     "Vino bianco secco, 1/2 bicchiere",
-    #     "Brodo vegetale, 8 dl scarsi", 
-    #     "Prezzemolo, qualche foglia", 
-    #     "Olio extravergine d'oliva", 
-    #     "Sale, pepe"
-    # ]
-    # # Test the function
-    # parsed_ingredients = parse_doc_intel_ingredients(ingredients_text, "cucina_facile")
-    # assert parsed_ingredients == output, f"Expected {output}, but got {parsed_ingredients}"
+    ingredients_text = "ingredienti Riso Carnaroli, 350 g Speck tagliato grosso, 100 g Ricotta fresca, 60 g Gherigli di noce, 50 g Lattuga, 1 cespo Cipolla, 1 Aglio, 1 spicchio Parmigiano grattugiato Burro, 50 g Vino bianco secco, 1/2 bicchiere Brodo vegetale, 8 dl scarsi Prezzemolo, qualche foglia Olio extravergine d'oliva Sale, pepe"
+    output = [
+        "Riso Carnaroli, 350 g",
+        "Speck tagliato grosso, 100 g",
+        "Ricotta fresca, 60 g", 
+        "Gherigli di noce, 50 g",
+        "Lattuga, 1 cespo", 
+        "Cipolla, 1", 
+        "Aglio, 1 spicchio",
+        "Parmigiano grattugiato", 
+        "Burro, 50 g", 
+        "Vino bianco secco, 1/2 bicchiere",
+        "Brodo vegetale, 8 dl scarsi", 
+        "Prezzemolo, qualche foglia", 
+        "Olio extravergine d'oliva", 
+        "Sale, pepe"
+    ]
+    # Test the function
+    parsed_ingredients = parse_doc_intel_ingredients(ingredients_text, "cucina_facile")
+    assert parsed_ingredients == output, f"Expected {output}, but got {parsed_ingredients}"
 
 
     test_ingredients = [

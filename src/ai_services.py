@@ -22,9 +22,9 @@ import io # For handling byte streams
 logger = logging.getLogger(__name__)
 
 try:
-    from utils import extract_max_number, parse_doc_intel_ingredients
+    from utils import extract_max_number, parse_quantity_and_unit
 except (ImportError, ModuleNotFoundError) as e:
-    from src.utils import extract_max_number, parse_doc_intel_ingredients # Fallback import for local testing
+    from src.utils import extract_max_number, parse_quantity_and_unit # Fallback import for local testing
     logger.warning(f"Import error: {e}. Using fallback import.")
 
 # --- Document Intelligence Service ---
@@ -100,7 +100,6 @@ def process_doc_intel_analyze_result(
         }
         result["difficulty"] = result["difficulty"].count("·") if result["difficulty"] else None
         result["total_time"] = extract_max_number(result["total_time"]) if result["total_time"] else None
-        result["ingredients"] = parse_doc_intel_ingredients(result["ingredients"], selected_model_id) if result["ingredients"] else None
 
     else:
         # Extract text and language from the result
@@ -187,6 +186,85 @@ def classify_recipe_category(
     except Exception as e:
         logger.error(f"Unexpected error during recipe classification: {e}", exc_info=True)
         return None
+
+
+def extract_recipe_ingredients(
+    language_client: TextAnalyticsClient,
+    ingredient_text: str
+) -> Optional[List[Dict[str, Any]]]:
+    """
+    Extracts structured ingredients with separate quantities and units using Azure AI Language NER.
+    """
+    try:
+        response = language_client.recognize_entities(documents=[ingredient_text])[0]
+    except Exception as e:
+        print(f"NER error: {e}")
+        return None
+
+    # Check for errors in the NER response
+    if response.is_error:
+        print(f"NER API returned error: {response.error}")
+        return None
+
+    # Extract the named entities from the response
+    # Entities are recognized by category and their position (offset) within the text
+    entities = [
+        {
+            "text": e.text,
+            "category": e.category,
+            "offset": e.offset,
+            "length": e.length,
+            "end": e.offset + e.length
+        }
+        for e in response.entities
+    ]
+
+    # Sort entities by their position in the text (offset)
+    entities.sort(key=lambda e: e["offset"])
+    
+    # List to store the final structured ingredient data
+    ingredients = []
+    
+    i = 0
+    while i < len(entities):
+        current = entities[i]
+        
+        # Skip non-relevant categories (e.g., not a product, food, or quantity)
+        if current["category"] not in ["Product", "Food", "Other", "Quantity"]:
+            i += 1
+            continue
+
+        # Assume the current entity is part of a valid ingredient
+        ingredient_name = current["text"]
+        quantity = None
+        j = i + 1
+
+        # Look ahead for potential quantities or measurements within a short distance
+        while j < len(entities) and entities[j]["offset"] - current["end"] < 20:
+            # Check if the next entity represents a quantity or measurement
+            if entities[j]["category"] in ["Quantity", "Measurement", "Number"]:
+                # Separate quantity and unit using the extract_quantity_and_unit function
+                quantity_info = parse_quantity_and_unit(entities[j]["text"])
+                if quantity_info:
+                    quantity = quantity_info
+                j += 1
+                break  # Stop after finding the first quantity for this ingredient
+        
+        # Combine the ingredient name with its quantity (if found)
+        if quantity:
+            ingredients.append({
+                "ingredient": ingredient_name,
+                "quantity": quantity
+            })
+        else:
+            ingredients.append({
+                "ingredient": ingredient_name,
+                "quantity": None
+            })
+
+        i = j  # Move to the next unprocessed entity
+    
+    return ingredients
 
 # --- Vision Service ---
 
@@ -406,4 +484,26 @@ def generate_recipe_from_prompt(
 #     # 3. Call OpenAI API (similar to generate_recipe_from_prompt)
 #     # 4. Parse the AI response into a dictionary
 #     pass
-    
+
+if __name__ == "__main__":
+    # Example usage of the functions in this module
+    pass  # Replace with actual test cases or example calls if needed
+
+    # Example: Using extract_recipe_ingredients with Azure AI Language
+    # NOTE: This requires a properly initialized TextAnalyticsClient with endpoint/key.
+    # Replace with your actual endpoint and key for real usage.
+
+    from azure_clients import _get_key_vault_client, _get_secrets_from_key_vault, _initialize_language_client
+
+    kvc = _get_key_vault_client()
+    secrets = _get_secrets_from_key_vault(kvc)
+    language_client = _initialize_language_client(secrets)
+
+    try:
+        ingredients_text = (
+            'ingredienti Penne rigate, 360 g Gamberetti puliti e sgusciati, 100 g Olive nere snocciolate, 50 g Zucchine fresche piccole e sode, 2 Pomodori maturi, 2 Uova di lompo, 50 g Limone, 1/2 Erba cipollina, un ciuffetto Olio extravergine di oliva Sale, pepe'
+        )
+        ingredients = extract_recipe_ingredients(language_client, ingredients_text)
+        print("Extracted ingredients:", ingredients)
+    except Exception as e:
+        print(f"Error initializing TextAnalyticsClient or extracting ingredients: {e}")
