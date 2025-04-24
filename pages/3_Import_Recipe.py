@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Streamlit page for importing recipes into Mirai Cook.
-Includes tentative parsing of ingredients after data extraction
-from URL or Document Intelligence.
+Streamlit page for importing recipes into Mirai Cook,
+either from a URL or by analyzing an uploaded document/image
+using Azure AI Document Intelligence.
+Includes tentative parsing of ingredients after data extraction.
 """
 
 import streamlit as st
@@ -13,6 +14,7 @@ from typing import List, Optional, Any, Dict, Union, IO
 import pandas as pd # To display parsed ingredients preview
 
 # --- Setup Project Root Path ---
+# Allows importing from the 'src' module
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
@@ -29,9 +31,9 @@ try:
     # Import the ingredient parsing utility
     from src.utils import parse_ingredient_string
     # Import AI functions when implemented
-    # from src.ai_services import extract_recipe_from_url_ai, analyze_recipe_document
+    # from src.ai_services import extract_recipe_from_url_ai, analyze_document_for_recipe
 except ImportError as e:
-    st.error(f"Error importing application modules: {e}. Check PYTHONPATH.")
+    st.error(f"Error importing application modules: {e}. Check PYTHONPATH and module locations.")
     st.stop()
 
 # --- Configure Logging ---
@@ -48,22 +50,35 @@ st.title("📥 Import Recipe")
 st.markdown("Add recipes by providing a URL or uploading a document/image for analysis.")
 
 # --- Check if NECESSARY Azure Clients are Initialized ---
+# For URL import, we might need OpenAI as a fallback
+# For Doc Intel, we need the specific client
 required_clients = [SESSION_STATE_DOC_INTEL_CLIENT, SESSION_STATE_OPENAI_CLIENT]
 clients_ready = True
 missing_clients = []
 for client_key in required_clients:
     if not st.session_state.get(client_key):
-        clients_ready = False; missing_clients.append(client_key.replace("_client", " Client"))
+        # We might allow the page to load even if one client is missing,
+        # but disable the corresponding import method.
+        # For now, let's require both for simplicity in the boilerplate.
+        clients_ready = False
+        missing_clients.append(client_key.replace("_client", " Client"))
+
 if not clients_ready:
-    st.error(f"Error: Required Azure connections missing: {', '.join(missing_clients)}.")
-    if not st.session_state.get(SESSION_STATE_CLIENTS_INITIALIZED): st.warning("Global Azure init reported issues.")
+    st.error(f"Error: Required Azure connections missing: {', '.join(missing_clients)}. Please ensure Azure services were initialized correctly.")
+    logger.error(f"Import Recipe page stopped. Missing clients in session state: {', '.join(missing_clients)}")
+    if not st.session_state.get(SESSION_STATE_CLIENTS_INITIALIZED):
+         st.warning("Note: Global Azure client initialization reported issues.")
     st.stop()
 else:
+    # Retrieve necessary clients from session state
     doc_intel_client = st.session_state[SESSION_STATE_DOC_INTEL_CLIENT]
     openai_client = st.session_state[SESSION_STATE_OPENAI_CLIENT]
     logger.info("Successfully retrieved required Azure AI clients for Import page.")
 
+
 # --- Initialize session state for imported data ---
+# Clear previous import data if navigating back or starting fresh
+# This check ensures it's only cleared if not already set by this page run
 if 'imported_recipe_data' not in st.session_state:
      st.session_state['imported_recipe_data'] = None
 
@@ -74,13 +89,16 @@ def process_and_store_extracted_data(extracted_data: Dict[str, Any]):
         return False
 
     parsed_ingredients_list = []
-    raw_ingredients_list = extracted_data.get('ingredients', []) # From scraper
-    raw_ingredients_text = extracted_data.get('ingredients_text', '') # From AI/DI
+    # Prioritize 'ingredients' list from scraper, fallback to 'ingredients_text'
+    raw_ingredients_list = extracted_data.get('ingredients', []) # List[str] from scraper
+    raw_ingredients_text = extracted_data.get('ingredients_text', '') # String from AI/DI or scraper fallback
 
     source_list = []
     if raw_ingredients_list: # Prefer list from scraper if available
          source_list = raw_ingredients_list
-         extracted_data['ingredients_text'] = "\n".join(raw_ingredients_list) # Ensure text version exists
+         # Ensure text version exists for consistency if needed later
+         if 'ingredients_text' not in extracted_data or not extracted_data['ingredients_text']:
+             extracted_data['ingredients_text'] = "\n".join(raw_ingredients_list)
     elif raw_ingredients_text:
          source_list = raw_ingredients_text.strip().split('\n')
 
@@ -88,6 +106,7 @@ def process_and_store_extracted_data(extracted_data: Dict[str, Any]):
         logger.info(f"Parsing {len(source_list)} raw ingredient lines...")
         for line in source_list:
             if line.strip():
+                # *** CALLING THE PARSER ***
                 parsed = parse_ingredient_string(line.strip())
                 # Store the parsed dictionary directly
                 parsed_ingredients_list.append(parsed)
@@ -95,9 +114,9 @@ def process_and_store_extracted_data(extracted_data: Dict[str, Any]):
     else:
         logger.warning("No raw ingredient data found to parse.")
 
-    # Add the parsed list to the dictionary
+    # *** ADDING PARSED DATA TO DICTIONARY ***
     extracted_data['parsed_ingredients'] = parsed_ingredients_list
-    # Store the complete data (including parsed ingredients) in session state
+    # *** STORING COMPLETE DATA IN SESSION STATE ***
     st.session_state['imported_recipe_data'] = extracted_data
     return True
 
@@ -131,23 +150,18 @@ if import_method == "URL":
                 # Prepare data structure
                 final_extracted_data = {
                     "title": scraped_data.get("title"),
-                    "ingredients": scraped_data.get("ingredients", []), # Keep raw list from scraper
+                    "ingredients": scraped_data.get("ingredients", []), # Keep raw list
                     "instructions_text": scraped_data.get("instructions_text"),
                     "image_url": scraped_data.get("image"),
                     "source_url": recipe_url,
                     "source_type": "Imported (URL Scraper)",
-                    "yields": scraped_data.get("yields"),
-                    "total_time": scraped_data.get("total_time"),
+                    "yields": scraped_data.get("yields"), # Pass yields
+                    "total_time": scraped_data.get("total_time"), # Pass total_time
                 }
             else:
                 logger.warning(f"recipe-scrapers failed for {recipe_url}. Attempting AI fallback.")
                 # --- TODO: Implement AI Fallback Logic ---
-                # extracted_data_ai_dict = extract_recipe_from_url_ai(openai_client, recipe_url)
-                # if extracted_data_ai_dict:
-                #    logger.info("AI fallback successful.")
-                #    final_extracted_data = { ... process dict ... }
-                #    final_extracted_data["source_type"] = "Imported (URL AI)"
-                # else: logger.error(...)
+                # Remember to try and extract title, ingredients_text, instructions_text, yields, total_time
                 st.warning("Automatic scraping failed. AI fallback not yet implemented.")
 
             # 2. Process and Store if data was extracted
@@ -176,7 +190,7 @@ if import_method == "URL":
 
                 st.markdown("---")
                 st.info("✅ Data is ready! Please go to the **Add/Edit Recipe** page to review, structure ingredients, and save.")
-            # Error messages handled within the logic
+            # else: Error messages handled within the logic
 
     elif submit_url and not recipe_url:
         st.warning("Please enter a URL.")
@@ -217,7 +231,7 @@ elif import_method == "Document/Image Analysis (Document Intelligence)":
             # 1. Combine multiple images into PDF if needed (using Pillow/img2pdf)
             #    combined_doc_bytes = combine_images_to_pdf(uploaded_files)
             # 2. Call ai_services.analyze_recipe_document(doc_intel_client, selected_model_id, combined_doc_bytes) -> returns AnalyzeResult
-            # 3. Process AnalyzeResult to get title, ingredients_text (from relevant field/paragraphs), instructions_text
+            # 3. Process AnalyzeResult to get title, ingredients_text, instructions_text
             #    analysis_output = process_analyze_result(analyze_result, selected_model_id) # You need to write this parser
             # 4. Prepare extracted_data dictionary
             #    extracted_data = {
@@ -226,6 +240,7 @@ elif import_method == "Document/Image Analysis (Document Intelligence)":
             #        'instructions_text': analysis_output.get('instructions_block'),
             #        'source_type': 'Digitalizzata',
             #        'image_url': None # No image URL from document analysis
+            #        # Try to extract yields/time too if using custom model
             #    }
             # 5. Process and store if data extracted
             #    if extracted_data.get('title'): # Basic check
