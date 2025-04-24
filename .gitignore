@@ -1,6 +1,7 @@
 # custom
 scripts/secrets.json
 bicep/outputs
+*.pkl
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
