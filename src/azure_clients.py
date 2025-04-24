@@ -2,7 +2,8 @@
 """
 Module for initializing and providing clients for specific Azure AI services.
 Uses Managed Identity to authenticate to Key Vault and retrieve individual
-service keys and endpoints. Stores initialized clients in Streamlit session state.
+service keys, endpoints, and configurations (like Search Index Name).
+Stores initialized clients in Streamlit session state.
 """
 
 import os
@@ -30,18 +31,19 @@ logging.getLogger("azure.core.pipeline.policies.http_logging_policy").setLevel(l
 logging.getLogger("azure.identity._internal.managed_identity_client").setLevel(logging.WARNING)
 
 # --- Global Variables ---
-# UPDATED: List of expected secret names for DEDICATED services
+# UPDATED: Added SearchIndexName
 EXPECTED_SECRET_NAMES = [
     "LanguageServiceKey", "LanguageServiceEndpoint",
     "VisionServiceKey", "VisionServiceEndpoint",
-    "SpeechServiceKey", "SpeechServiceRegion", # Speech often uses Key + Region
+    "SpeechServiceKey", "SpeechServiceRegion",
     "DocIntelKey", "DocIntelEndpoint",
     "AzureOpenAIKey", "AzureOpenAIEndpoint",
     "CosmosDBEndpoint", "CosmosDBKey",
     "StorageAccountName", "StorageAccountKey", # Or StorageConnectionString
-    "SearchServiceEndpoint", "SearchAdminKey"
+    "SearchServiceEndpoint", "SearchAdminKey",
+    "SearchIndexName" # Added secret name for the index
 ]
-# Session state keys remain largely the same conceptually
+# Session state keys
 SESSION_STATE_SECRETS = 'azure_secrets'
 SESSION_STATE_COSMOS_CLIENT = 'cosmos_client'
 SESSION_STATE_RECIPE_CONTAINER = 'recipe_container'
@@ -54,7 +56,8 @@ SESSION_STATE_DOC_INTEL_CLIENT = 'doc_intel_client'
 SESSION_STATE_SPEECH_CONFIG = 'speech_config'
 SESSION_STATE_SEARCH_CLIENT = 'search_client'
 SESSION_STATE_BLOB_CLIENT = 'blob_client'
-SESSION_STATE_CLIENTS_INITIALIZED = 'azure_clients_initialized'
+SESSION_STATE_CLIENTS_INITIALIZED = 'azure_clients_initialized_status'
+
 
 # --- Credential Initialization (Centralized) ---
 try:
@@ -93,7 +96,7 @@ def _get_secrets_from_key_vault(kv_client: SecretClient, secret_names: List[str]
             retrieved_secrets[secret_name] = secret_bundle.value
             retrieved_count += 1
         except ResourceNotFoundError:
-            logger.warning(f"Secret '{secret_name}' not found in Key Vault '{kv_client.vault_url}'.")
+            logger.warning(f"Secret '{secret_name}' not found in Key Vault '{kv_client.vault_url}'.") # Changed log level
         except ClientAuthenticationError as auth_error:
             logger.error(f"Authentication error retrieving secret '{secret_name}': {auth_error}. Stopping.", exc_info=True)
             return None # Fatal
@@ -126,9 +129,7 @@ def _initialize_openai_client(secrets: Dict[str, Optional[str]]) -> Optional[Azu
      endpoint = secrets.get("AzureOpenAIEndpoint")
      api_key = secrets.get("AzureOpenAIKey")
      api_version = os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-15-preview")
-     if not endpoint:
-         logger.error("Azure OpenAI endpoint not found.")
-         return None
+     if not endpoint: logger.error("Azure OpenAI endpoint not found."); return None
      credential_to_use = None
      auth_method = "API Key"
      if not api_key:
@@ -146,16 +147,22 @@ def _initialize_openai_client(secrets: Dict[str, Optional[str]]) -> Optional[Azu
          logger.error(f"Failed to initialize Azure OpenAI client: {e}", exc_info=True)
          return None
 
+def _get_ai_services_credential(secrets: Dict[str, Optional[str]], service_key_name: str) -> Optional[AzureKeyCredential]:
+     """Creates an AzureKeyCredential using a specific service key name."""
+     key = secrets.get(service_key_name)
+     if not key:
+         logger.error(f"AI Service key '{service_key_name}' not found.")
+         return None
+     return AzureKeyCredential(key)
+
 def _initialize_language_client(secrets: Dict[str, Optional[str]]) -> Optional[TextAnalyticsClient]:
     """Initializes Azure AI Language client using specific key/endpoint."""
     endpoint = secrets.get("LanguageServiceEndpoint")
-    key = secrets.get("LanguageServiceKey")
-    if not endpoint or not key:
-        logger.error("Language Service endpoint or key not found.")
+    credential = _get_ai_services_credential(secrets, "LanguageServiceKey")
+    if not endpoint or not credential:
+        logger.error("Language Service endpoint or credential not available.")
         return None
     try:
-        credential = AzureKeyCredential(key)
-        logger.info(f"Initializing Text Analytics Client for endpoint: {endpoint}")
         client = TextAnalyticsClient(endpoint=endpoint, credential=credential)
         logger.info("Text Analytics Client initialized successfully.")
         return client
@@ -166,13 +173,11 @@ def _initialize_language_client(secrets: Dict[str, Optional[str]]) -> Optional[T
 def _initialize_vision_client(secrets: Dict[str, Optional[str]]) -> Optional[ImageAnalysisClient]:
     """Initializes Azure AI Vision client using specific key/endpoint."""
     endpoint = secrets.get("VisionServiceEndpoint")
-    key = secrets.get("VisionServiceKey")
-    if not endpoint or not key:
-        logger.error("Vision Service endpoint or key not found.")
+    credential = _get_ai_services_credential(secrets, "VisionServiceKey")
+    if not endpoint or not credential:
+        logger.error("Vision Service endpoint or credential not available.")
         return None
     try:
-        credential = AzureKeyCredential(key)
-        logger.info(f"Initializing Image Analysis Client for endpoint: {endpoint}")
         client = ImageAnalysisClient(endpoint=endpoint, credential=credential)
         logger.info("Image Analysis Client initialized successfully.")
         return client
@@ -183,13 +188,11 @@ def _initialize_vision_client(secrets: Dict[str, Optional[str]]) -> Optional[Ima
 def _initialize_doc_intelligence_client(secrets: Dict[str, Optional[str]]) -> Optional[DocumentIntelligenceClient]:
     """Initializes Azure AI Document Intelligence client using specific key/endpoint."""
     endpoint = secrets.get("DocIntelEndpoint")
-    key = secrets.get("DocIntelKey")
-    if not endpoint or not key:
-        logger.error("Document Intelligence endpoint or key not found.")
+    credential = _get_ai_services_credential(secrets, "DocIntelKey")
+    if not endpoint or not credential:
+        logger.error("Document Intelligence endpoint or credential not available.")
         return None
     try:
-        credential = AzureKeyCredential(key)
-        logger.info(f"Initializing Document Intelligence Client for endpoint: {endpoint}")
         client = DocumentIntelligenceClient(endpoint=endpoint, credential=credential)
         logger.info("Document Intelligence Client initialized successfully.")
         return client
@@ -200,12 +203,11 @@ def _initialize_doc_intelligence_client(secrets: Dict[str, Optional[str]]) -> Op
 def _initialize_speech_config(secrets: Dict[str, Optional[str]]) -> Optional[SpeechConfig]:
     """Initializes Azure AI Speech configuration object using specific key/region."""
     key = secrets.get("SpeechServiceKey")
-    region = secrets.get("SpeechServiceRegion") # Expecting region directly now
+    region = secrets.get("SpeechServiceRegion")
     if not key or not region:
          logger.error(f"Speech Service key ({key is not None}) or region ({region}) not found in secrets.")
          return None
     try:
-        logger.info(f"Initializing Speech Config for region: {region}")
         speech_config = SpeechConfig(subscription=key, region=region)
         logger.info("Speech Config initialized successfully.")
         return speech_config
@@ -213,24 +215,32 @@ def _initialize_speech_config(secrets: Dict[str, Optional[str]]) -> Optional[Spe
         logger.error(f"Failed to initialize Speech Config: {e}", exc_info=True)
         return None
 
-def _initialize_search_client(secrets: Dict[str, Optional[str]], index_name: str) -> Optional[SearchClient]:
-     """Initializes Azure AI Search client using specific key/endpoint."""
+# --- UPDATED Search Client Initializer ---
+def _initialize_search_client(secrets: Dict[str, Optional[str]]) -> Optional[SearchClient]:
+     """
+     Initializes Azure AI Search client using specific key/endpoint and index name from secrets.
+     """
      endpoint = secrets.get("SearchServiceEndpoint")
-     key = secrets.get("SearchAdminKey")
-     if not endpoint or not key:
-         logger.error("Search service endpoint or key not found.")
+     key = secrets.get("SearchAdminKey") # Using Admin key for flexibility during dev/test
+     index_name = secrets.get("SearchIndexName") # Get index name from secrets
+
+     if not endpoint or not key or not index_name:
+         logger.error(f"Search service endpoint ({endpoint is not None}), key ({key is not None}), or index name ({index_name is not None}) not found in secrets.")
          return None
-     if not index_name: logger.error("Search index name required."); return None
+
      try:
          credential = AzureKeyCredential(key)
          logger.info(f"Initializing Search Client for endpoint: {endpoint}, index: {index_name}")
          client = SearchClient(endpoint=endpoint, index_name=index_name, credential=credential)
-         client.get_document_count() # Test connection
-         logger.info("Search Client initialized and verified successfully.")
+         # Test connection by getting index stats (requires admin key)
+         client.get_document_count()
+         logger.info(f"Search Client initialized and verified for index '{index_name}'.")
          return client
      except Exception as e:
-         logger.error(f"Failed to initialize or verify Search client: {e}", exc_info=True)
+         # Log as warning because search might be optional or index not ready yet
+         logger.warning(f"Failed to initialize or verify Search client for index '{index_name}': {e}", exc_info=True)
          return None
+# --- END UPDATED ---
 
 def _initialize_blob_service_client(secrets: Dict[str, Optional[str]]) -> Optional[BlobServiceClient]:
      """Initializes Azure Blob Storage client using specific key/name or connection string or AAD."""
@@ -239,7 +249,7 @@ def _initialize_blob_service_client(secrets: Dict[str, Optional[str]]) -> Option
      connection_string = secrets.get("StorageConnectionString")
      credential_to_use: Union[str, ManagedIdentityCredential, DefaultAzureCredential, None] = None
      auth_method = "Unknown"
-     # Prioritize Connection String if provided
+     # Prioritize Connection String > Account Key > Managed Identity/Default Credential
      if connection_string: auth_method = "Connection String"
      elif account_name and account_key:
          connection_string = f"DefaultEndpointsProtocol=https;AccountName={account_name};AccountKey={account_key};EndpointSuffix=core.windows.net"
@@ -267,25 +277,26 @@ def _initialize_blob_service_client(secrets: Dict[str, Optional[str]]) -> Option
 
 def initialize_clients_in_session_state(force_reload: bool = False):
     """
-    Initializes all necessary Azure clients using specific service credentials
-    retrieved from Key Vault and stores them in st.session_state.
+    Initializes all necessary Azure clients and stores them in st.session_state.
+    Checks session state first to avoid re-initialization unless force_reload is True.
+    Uses the consistent SESSION_STATE_CLIENTS_INITIALIZED key.
     """
-    session_key = f"{__name__}_clients_initialized"
+    session_key = SESSION_STATE_CLIENTS_INITIALIZED
     if not force_reload and st.session_state.get(session_key):
         return True # Already initialized
 
     logger.info(f"Initializing Azure clients (force_reload={force_reload})...")
     st.session_state[session_key] = False # Mark as initializing
 
-    # 1. Get Secrets from Key Vault
+    # 1. Get Secrets
     kv_client = _get_key_vault_client()
-    if not kv_client: st.error("Fatal: Could not initialize Key Vault client."); return False
+    if not kv_client: st.error("Fatal: Could not initialize Key Vault client."); st.session_state[session_key] = False; return False
     secrets = _get_secrets_from_key_vault(kv_client)
-    if secrets is None: st.error("Fatal: Failed to retrieve secrets from Key Vault."); return False
+    if secrets is None: st.error("Fatal: Failed to retrieve secrets from Key Vault."); st.session_state[session_key] = False; return False
     st.session_state[SESSION_STATE_SECRETS] = secrets
     logger.info("Secrets loaded into session state.")
 
-    # 2. Initialize and Store Clients using specific credentials
+    # 2. Initialize and Store Clients
     init_success = True # Assume success initially
 
     # Cosmos DB Client and Containers
@@ -305,7 +316,7 @@ def initialize_clients_in_session_state(force_reload: bool = False):
         except Exception as e: logger.error(f"Failed to get Cosmos DB containers: {e}", exc_info=True); init_success = False
     else: init_success = False
 
-    # Initialize other clients
+    # Initialize other clients and store them, updating init_success if any fail
     st.session_state[SESSION_STATE_OPENAI_CLIENT] = _initialize_openai_client(secrets)
     if not st.session_state[SESSION_STATE_OPENAI_CLIENT]: init_success = False
 
@@ -324,14 +335,21 @@ def initialize_clients_in_session_state(force_reload: bool = False):
     st.session_state[SESSION_STATE_BLOB_CLIENT] = _initialize_blob_service_client(secrets)
     if not st.session_state[SESSION_STATE_BLOB_CLIENT]: init_success = False
 
-    # Search Client (Initialize later or with default index?)
-    st.session_state[SESSION_STATE_SEARCH_CLIENT] = None
+    # --- UPDATED: Initialize Search Client using secret ---
+    search_client = _initialize_search_client(secrets) # Removed index_name argument here
+    st.session_state[SESSION_STATE_SEARCH_CLIENT] = search_client
+    if not search_client:
+        # Log warning but don't necessarily fail the overall initialization
+        logger.warning("Failed to initialize Search client. Search features unavailable.")
+        # init_success = False # Uncomment if Search is critical
+    # --- END UPDATED ---
+
 
     # Final check and logging
     if not init_success:
-        logger.error("One or more Azure clients failed to initialize properly.")
+        logger.error("One or more core Azure clients failed to initialize properly.")
 
-    st.session_state[session_key] = init_success
+    st.session_state[SESSION_STATE_CLIENTS_INITIALIZED] = init_success
     logger.info(f"Azure client initialization complete. Overall Success: {init_success}")
     return init_success
 
@@ -339,7 +357,6 @@ def initialize_clients_in_session_state(force_reload: bool = False):
 # --- Main Execution (Example Usage/Test) ---
 if __name__ == "__main__":
     print("--- Testing Azure Client Initialization (Specific Services) into Session State (Simulated) ---")
-    # ... (Test block remains the same as previous version, will test the new init logic) ...
     if 'session_state' not in locals():
         st_session_state_simulation = {}
         class MockSessionState:
@@ -354,6 +371,12 @@ if __name__ == "__main__":
         if load_dotenv(): print("Loaded environment variables from .env file.")
         else: print("No .env file found or it is empty.")
     except ImportError: print("dotenv library not found, skipping .env load.")
+
+    # Add dummy SearchIndexName to env for local testing if not present
+    if not os.getenv("AZURE_KEY_VAULT_URI"):
+        print("WARNING: AZURE_KEY_VAULT_URI not set. Test requires Key Vault access or mocked secrets.")
+    # We don't set SEARCH_INDEX_NAME here anymore, it's expected in Key Vault
+
     success = initialize_clients_in_session_state()
     if success:
         print("\nClients initialized and stored in session state (simulated):")
@@ -364,6 +387,7 @@ if __name__ == "__main__":
         print(f"  - Doc Intel Client: {'OK' if st.session_state.get(SESSION_STATE_DOC_INTEL_CLIENT) else 'FAILED'}")
         print(f"  - Speech Config: {'OK' if st.session_state.get(SESSION_STATE_SPEECH_CONFIG) else 'FAILED'}")
         print(f"  - Blob Client: {'OK' if st.session_state.get(SESSION_STATE_BLOB_CLIENT) else 'FAILED'}")
+        print(f"  - Search Client: {'OK' if st.session_state.get(SESSION_STATE_SEARCH_CLIENT) else 'FAILED/Not Initialized'}")
         print("\nSecrets stored (keys only):")
         if SESSION_STATE_SECRETS in st.session_state and st.session_state[SESSION_STATE_SECRETS]: print(f"     {list(st.session_state[SESSION_STATE_SECRETS].keys())}")
         else: print("     No secrets dictionary found in state.")

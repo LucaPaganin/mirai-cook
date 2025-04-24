@@ -13,16 +13,17 @@ import sys
 
 # --- Setup Project Root Path ---
 # Allows importing from the 'src' module when run from the project root
+# Assumes mirai_cook.py is in the root project folder alongside 'src' and 'pages'
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '.'))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 # --- Import Initialization Function and Keys ---
 try:
-    # Import the function and the session state keys
+    # Import the function and the session state key
     from src.azure_clients import (
         initialize_clients_in_session_state,
-        SESSION_STATE_CLIENTS_INITIALIZED,
+        SESSION_STATE_CLIENTS_INITIALIZED, # Key for the overall status flag
         # Import keys for individual clients to check status
         SESSION_STATE_COSMOS_CLIENT,
         SESSION_STATE_RECIPE_CONTAINER,
@@ -66,11 +67,12 @@ except st.errors.StreamlitAPIException as e:
 # This runs once per user session unless explicitly forced or failed previously.
 initialization_success = False
 # Check if initialization was attempted and failed previously in this session
-init_attempted_and_failed = st.session_state.get(SESSION_STATE_CLIENTS_INITIALIZED) is False
+# Use the correct key constant here
+init_status = st.session_state.get(SESSION_STATE_CLIENTS_INITIALIZED) # Can be True, False, or None
 
-# Initialize if never attempted OR if it failed previously (allow retry on page reload)
-if not st.session_state.get(SESSION_STATE_CLIENTS_INITIALIZED, False) or init_attempted_and_failed:
-    logger.info(f"Session state not initialized or previous attempt failed. Initializing Azure clients...")
+# Initialize if never attempted (None) OR if it failed previously (False)
+if init_status is None or init_status is False:
+    logger.info(f"Session state not initialized ({init_status=}). Initializing Azure clients...")
     # Use a spinner for user feedback during initialization
     with st.spinner("Connecting to Azure services... Please wait."):
         # Load .env file if present (useful for local development)
@@ -106,7 +108,6 @@ Your personal and intelligent AI culinary assistant.
 
 **Explore the sections using the menu in the sidebar on the left.**
 """)
-# Removed the list of features from here as they are in the sidebar navigation
 
 # --- Display Client Initialization Status ---
 st.sidebar.divider() # Add a separator in the sidebar
@@ -123,16 +124,23 @@ clients_to_check = {
     "AI Document Intelligence": SESSION_STATE_DOC_INTEL_CLIENT,
     "AI Speech": SESSION_STATE_SPEECH_CONFIG,
     "Blob Storage": SESSION_STATE_BLOB_CLIENT,
-    # "AI Search": SESSION_STATE_SEARCH_CLIENT # Search client initialized later
+    "AI Search": SESSION_STATE_SEARCH_CLIENT # Check Search client status too
 }
 
-# Check the global initialization flag first
+# Check the global initialization flag first using the correct key
 init_overall_status = st.session_state.get(SESSION_STATE_CLIENTS_INITIALIZED)
 
 if init_overall_status is None:
     st.sidebar.warning("Initializing connections...")
 elif init_overall_status is False:
     st.sidebar.error("Initialization failed. Check logs.")
+    # Optionally list individual statuses even on overall failure
+    for display_name, session_key in clients_to_check.items():
+        client = st.session_state.get(session_key)
+        if not client:
+             # Use slightly different icon for failed state vs merely unavailable
+             st.sidebar.markdown(f"- {display_name}: <span style='color:red;'>○ Failed</span>", unsafe_allow_html=True)
+
 else:
     # Initialization was attempted and potentially partially successful
     all_ok = True
@@ -141,18 +149,24 @@ else:
         if client:
             st.sidebar.markdown(f"- {display_name}: <span style='color:green;'>● Connected</span>", unsafe_allow_html=True)
         else:
-            st.sidebar.markdown(f"- {display_name}: <span style='color:red;'>○ Failed/Unavailable</span>", unsafe_allow_html=True)
-            all_ok = False
+            # This case might happen if initialization succeeded overall but one optional client failed (like Search)
+            st.sidebar.markdown(f"- {display_name}: <span style='color:orange;'>○ Unavailable</span>", unsafe_allow_html=True)
+            # Decide if missing non-critical clients should affect overall 'all_ok' status
+            # if session_key == SESSION_STATE_SEARCH_CLIENT: # Example: Don't fail overall for Search
+            #    pass
+            # else:
+            #    all_ok = False
+            all_ok = False # For now, mark not all ok if anything is missing
+
     if all_ok:
         st.sidebar.success("All core services connected.")
     else:
-        st.sidebar.warning("Some services failed to connect.")
+        st.sidebar.warning("Some services unavailable.")
 
 
-# Display a status indicator in the sidebar based on initialization success
-# Moved the simple status here, below the detailed list
+# Display a simple status indicator based on the overall success flag
 st.sidebar.divider()
-if initialization_success:
+if initialization_success: # Use the variable determined at the start of the script run
     st.sidebar.markdown("✅ **Status:** Ready")
 else:
     st.sidebar.markdown("⚠️ **Status:** Connection Issues")

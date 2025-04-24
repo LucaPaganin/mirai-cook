@@ -7,35 +7,17 @@ Fixed regex flags for case-insensitivity.
 
 import re
 import logging
-from typing import Dict, Optional, Union, Tuple
+from typing import Dict, List, Optional, Union, Tuple
 from unidecode import unidecode  # For robust character handling
+try:
+    from units import COMMON_UNITS  # Assuming this is a list of common units
+except (ImportError, ModuleNotFoundError):
+    from src.units import COMMON_UNITS  # Adjust the import path as necessary
 
 # Configure logging
 logger = logging.getLogger(__name__)
 
-# --- Constants for Parsing ---
-# Common units (expand this list!)
-COMMON_UNITS = [
-    'g', 'gr', 'gram', 'grams', 'kg', 'kilogram', 'kilograms',
-    'ml', 'milliliter', 'milliliters', 'l', 'liter', 'liters',
-    'oz', 'ounce', 'ounces', 'lb', 'pound', 'pounds',
-    'tsp', 'teaspoon', 'teaspoons',
-    'tbsp', 'tablespoon', 'tablespoons',
-    'cup', 'cups',
-    'pinch', 'pinches',
-    'clove', 'cloves',
-    'slice', 'slices',
-    'piece', 'pieces', 'pz',  # Added pz
-    'can', 'cans', 'scatola',  # Added scatola
-    'package', 'packages', 'confezione',  # Added confezione
-    'bunch', 'bunches', 'mazzetto',  # Added mazzetto
-    'sprig', 'sprigs', 'rametto',  # Added rametto
-    # Italian units
-    'cucchiaio', 'cucchiai', 'cucchiaino', 'cucchiaini',
-    'pizzico', 'spicchio', 'spicchi', 'fetta', 'fette', 'bicchiere', 'bicchieri',
-    'etto', 'etti', 'hg',
-    'qb', 'q.b', 'q.b.'  # Quanto basta
-]
+
 # Create a regex pattern for units (case-insensitive matching will be handled by flag)
 # Removed (?i) from here
 # Build a regex pattern for units (case-insensitive, allows optional trailing dot)
@@ -80,41 +62,24 @@ def parse_ingredient_string(line: str) -> Dict[str, Optional[Union[float, str]]]
     if notes_match:
         parsed["notes"] = notes_match.group(1).strip()
         line = re.sub(r'\(.*?\)', '', line).strip()
-    # Only split on dashes or commas NOT between digits
-    line_parts = re.split(r'\s*(?<!\d),(?!\d)\s*|\s*-\s*', line, 1)
-    line = line_parts[0].strip()
-    if len(line_parts) > 1 and parsed["notes"] is None:
-        parsed["notes"] = line_parts[1].strip()
+    else:
+        line = original_line.strip()
+    # # Only split on dashes or commas NOT between digits
+    # line_parts = re.split(r'\s*(?<!\d),(?!\d)\s*|\s*-\s*', line, 1)
+    # line = line_parts[0].strip()
+    # if len(line_parts) > 1 and parsed["notes"] is None:
+    #     parsed["notes"] = line_parts[1].strip()
 
-    # --- Regex Matching Attempts (Order Matters) ---
-
-    # Pattern 1: Number Unit Name (e.g., "100 g flour", "1 1/2 cup sugar")
-    qty_unit_name_pattern = (
-        rf'^\s*'
-        rf'(?P<quantity>{NUMBER_PATTERN})\s*'
-        rf'(?P<unit>{UNIT_PATTERN})\s+'
-        rf'(?P<name>.*)$'
-    )
-    match = re.match(qty_unit_name_pattern, line, flags=re.IGNORECASE)
-    if match:
-        logger.debug("Matched Pattern 1: Number Unit Name")
+    # --- Pattern dictionary ---
+    def process_number_unit_name(match):
         parsed["quantity"] = _parse_quantity(match.group("quantity"))
         parsed["unit"] = match.group("unit").strip().rstrip('.').lower()
         parsed["name"] = match.group("name").strip()
         if parsed["unit"] == 'q.b.':
             parsed["unit"] = 'qb'
         return parsed
-    
-    # Pattern X: Unit Quantity Name (e.g., "g 100 farina", "kg 1 zucchero")
-    unit_qty_name_pattern = (
-        rf'^\s*'
-        rf'(?P<unit>{UNIT_PATTERN})\s*'
-        rf'(?P<quantity>{NUMBER_PATTERN})\s+'
-        rf'(?P<name>.*)$'
-    )
-    match = re.match(unit_qty_name_pattern, line, flags=re.IGNORECASE)
-    if match:
-        logger.debug("Matched Pattern X: Unit Quantity Name")
+
+    def process_unit_quantity_name(match):
         parsed["unit"] = match.group("unit").strip().rstrip('.').lower()
         if parsed["unit"] == 'q.b.':
             parsed["unit"] = 'qb'
@@ -122,30 +87,13 @@ def parse_ingredient_string(line: str) -> Dict[str, Optional[Union[float, str]]]
         parsed["name"] = match.group("name").strip()
         return parsed
 
-    # Pattern 2: Number Name (No recognized unit found after number)
-    qty_name_pattern = (
-        rf'^\s*'
-        rf'(?P<quantity>{NUMBER_PATTERN})\s+'
-        rf'(?P<name>[^\d].*)$'
-    )
-    match = re.match(qty_name_pattern, line)
-    if match:
-        logger.debug("Matched Pattern 2: Number Name (Unit Optional/Implicit)")
+    def process_number_name(match):
         parsed["quantity"] = _parse_quantity(match.group("quantity"))
         parsed["unit"] = None
         parsed["name"] = match.group("name").strip()
         return parsed
 
-    # Pattern 3: Name Number [Unit] [Notes]
-    name_qty_unit_notes_pattern = (
-        rf'^(?P<name>.*?)\s+'
-        rf'(?P<quantity>{NUMBER_PATTERN})\s*'
-        rf'(?P<unit>{UNIT_PATTERN})?\s*'
-        rf'(?P<notes>.*)$'
-    )
-    match = re.match(name_qty_unit_notes_pattern, line, flags=re.IGNORECASE)
-    if match:
-        logger.debug("Matched Pattern 3: Name Number [Unit] [Notes]")
+    def process_name_number_unit_notes(match):
         potential_name = match.group("name").strip()
         potential_qty = _parse_quantity(match.group("quantity"))
         potential_unit = match.group("unit")
@@ -169,15 +117,9 @@ def parse_ingredient_string(line: str) -> Dict[str, Optional[Union[float, str]]]
         else:
             logger.debug(
                 "Pattern 3 potential name matched a common unit, skipping.")
+            return None
 
-    # Pattern 4: Name Number (No Unit after number, e.g., "Eggs 2")
-    name_qty_pattern = (
-        rf'^(?P<name>.*?)\s+'
-        rf'(?P<quantity>{NUMBER_PATTERN})\s*$'
-    )
-    match = re.match(name_qty_pattern, line)
-    if match:
-        logger.debug("Matched Pattern 4: Name Number")
+    def process_name_number(match):
         potential_name = match.group("name").strip()
         if potential_name.lower() not in COMMON_UNITS:
             parsed["name"] = potential_name
@@ -189,23 +131,63 @@ def parse_ingredient_string(line: str) -> Dict[str, Optional[Union[float, str]]]
         else:
             logger.debug(
                 "Pattern 4 potential name matched a common unit, skipping.")
+            return None
 
-    # Pattern 5: Unit Name (No Number, e.g., "pinch of salt", "qb sale")
-    unit_name_pattern = (
-        rf'^\s*'
-        rf'(?P<unit>{UNIT_PATTERN})\s+'
-        rf'(?:of\s+)?'
-        rf'(?P<name>.*)$'
-    )
-    match = re.match(unit_name_pattern, line, flags=re.IGNORECASE)
-    if match:
-        logger.debug("Matched Pattern 5: Unit Name")
+    def process_unit_name(match):
         parsed["quantity"] = None
         parsed["unit"] = match.group("unit").strip().rstrip('.').lower()
         parsed["name"] = match.group("name").strip()
         if parsed["unit"] == 'q.b.':
             parsed["unit"] = 'qb'
         return parsed
+
+    patterns = [
+        {
+            "name": "Number Unit Name",
+            "regex": rf'^\s*(?P<quantity>{NUMBER_PATTERN})\s*(?P<unit>{UNIT_PATTERN})\s+(?P<name>.*)$',
+            "flags": re.IGNORECASE,
+            "processor": process_number_unit_name
+        },
+        {
+            "name": "Unit Quantity Name",
+            "regex": rf'^\s*(?P<unit>{UNIT_PATTERN})\s*(?P<quantity>{NUMBER_PATTERN})\s+(?P<name>.*)$',
+            "flags": re.IGNORECASE,
+            "processor": process_unit_quantity_name
+        },
+        {
+            "name": "Number Name (No recognized unit found after number)",
+            "regex": rf'^\s*(?P<quantity>{NUMBER_PATTERN})\s+(?P<name>[^\d].*)$',
+            "flags": 0,
+            "processor": process_number_name
+        },
+        {
+            "name": "Name[,] Number [Unit] [Notes]",
+            "regex": rf'^(?P<name>.*?),?\s+(?P<quantity>{NUMBER_PATTERN})\s*(?P<unit>{UNIT_PATTERN})?\s*(?P<notes>.*)$',
+            "flags": re.IGNORECASE,
+            "processor": process_name_number_unit_notes
+        },
+        {
+            "name": "Name Number (No Unit after number)",
+            "regex": rf'^(?P<name>.*?)\s+(?P<quantity>{NUMBER_PATTERN})\s*$',
+            "flags": 0,
+            "processor": process_name_number
+        },
+        {
+            "name": "Unit Name (No Number)",
+            "regex": rf'^\s*(?P<unit>{UNIT_PATTERN})\s+(?:of\s+)?(?P<name>.*)$',
+            "flags": re.IGNORECASE,
+            "processor": process_unit_name
+        }
+    ]
+
+    # --- Try patterns in order ---
+    for pat in patterns:
+        match = re.match(pat["regex"], line, flags=pat["flags"])
+        if match:
+            logger.debug(f"Matched Pattern: {pat['name']}")
+            result = pat["processor"](match)
+            if result is not None:
+                return result
 
     # --- Fallback ---
     logger.debug(
@@ -278,14 +260,85 @@ def extract_max_number(time_str: str) -> float:
     # Convert to float and return the max
     return float(max(numbers, key=float))
 
-# Example usage:
-# extract_max_number("  15-20   min ")  # returns 20.0
+
+
+
+def parse_doc_intel_ingredients(
+    ingredients_text: str,
+    selected_model_id: str
+) -> List[str]:
+    """
+    Parses the ingredients text into a structured list of ingredient strings.
+    Each ingredient is a string like "Riso Carnaroli, 350 g".
+    """
+    if selected_model_id.startswith("cucina_facile"):
+        # Remove the leading "ingredienti" (case-insensitive, with or without colon)
+        s = re.sub(r'^\s*ingredienti[:,]?\s*', '', ingredients_text, flags=re.IGNORECASE)
+        # Improved pattern: splits on capitalized words, even if not comma-separated
+        # Handles: "Olio extravergine d'oliva Sale" -> ["Olio extravergine d'oliva", "Sale"]
+        pattern = (
+            r"([A-ZÀ-Ü][^,]*?(?: [a-zà-ü][^,]*)*)"      # Name: starts with capital, may have spaces, stops at comma or next capital
+            r"(?:,\s*([^A-ZÀ-Ü]+?))?"                   # Optional: comma, then qty/unit (not starting with capital)
+            r"(?=\s+[A-ZÀ-Ü]|$)"                        # Lookahead: next ingredient starts with capital or end of string
+        )
+        matches = re.findall(pattern, s, flags=re.VERBOSE)
+        result = []
+        for name, qty_unit in matches:
+            name = name.strip()
+            if qty_unit:
+                qty_unit = qty_unit.strip()
+                if qty_unit:
+                    result.append(f"{name}, {qty_unit}")
+                else:
+                    result.append(name)
+            else:
+                result.append(name)
+        return [x for x in result if x]
+    else:
+        raise NotImplementedError(f"Parsing for this model ID '{selected_model_id}' is not implemented.")
 
 
 # --- Example Usage (for testing this module directly) ---
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
+    # ingredient list parsing test
+    # ingredients_text = "ingredienti Riso Carnaroli, 350 g Speck tagliato grosso, 100 g Ricotta fresca, 60 g Gherigli di noce, 50 g Lattuga, 1 cespo Cipolla, 1 Aglio, 1 spicchio Parmigiano grattugiato Burro, 50 g Vino bianco secco, 1/2 bicchiere Brodo vegetale, 8 dl scarsi Prezzemolo, qualche foglia Olio extravergine d'oliva Sale, pepe"
+    # output = [
+    #     "Riso Carnaroli, 350 g",
+    #     "Speck tagliato grosso, 100 g",
+    #     "Ricotta fresca, 60 g", 
+    #     "Gherigli di noce, 50 g",
+    #     "Lattuga, 1 cespo", 
+    #     "Cipolla, 1", 
+    #     "Aglio, 1 spicchio",
+    #     "Parmigiano grattugiato", 
+    #     "Burro, 50 g", 
+    #     "Vino bianco secco, 1/2 bicchiere",
+    #     "Brodo vegetale, 8 dl scarsi", 
+    #     "Prezzemolo, qualche foglia", 
+    #     "Olio extravergine d'oliva", 
+    #     "Sale, pepe"
+    # ]
+    # # Test the function
+    # parsed_ingredients = parse_doc_intel_ingredients(ingredients_text, "cucina_facile")
+    # assert parsed_ingredients == output, f"Expected {output}, but got {parsed_ingredients}"
+
+
     test_ingredients = [
+        "Riso Carnaroli, 350 g",
+        "Speck tagliato grosso, 100 g",
+        "Ricotta fresca, 60 g", 
+        "Gherigli di noce, 50 g",
+        "Lattuga, 1 cespo", 
+        "Cipolla, 1", 
+        "Aglio, 1 spicchio",
+        "Parmigiano grattugiato", 
+        "Burro, 50 g", 
+        "Vino bianco secco, 1/2 bicchiere",
+        "Brodo vegetale, 8 dl scarsi", 
+        "Prezzemolo, qualche foglia", 
+        "Olio extravergine d'oliva", 
+        "Sale, pepe"
         "100g burro, ammorbidito",
         "g 100 farina",
         "Cipolle dorate 1,5 kg",

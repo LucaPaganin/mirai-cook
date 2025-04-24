@@ -89,9 +89,7 @@ def process_and_store_extracted_data(extracted_data: Dict[str, Any]):
         return False
 
     parsed_ingredients_list = []
-    # Prioritize 'ingredients' list from scraper, fallback to 'ingredients_text'
-    raw_ingredients_list = extracted_data.get('ingredients', []) # List[str] from scraper
-    raw_ingredients_text = extracted_data.get('ingredients_text', '') # String from AI/DI or scraper fallback
+    raw_ingredients_list = extracted_data.get('ingredients', [])
 
     source_list = []
     if raw_ingredients_list: # Prefer list from scraper if available
@@ -99,8 +97,6 @@ def process_and_store_extracted_data(extracted_data: Dict[str, Any]):
          # Ensure text version exists for consistency if needed later
          if 'ingredients_text' not in extracted_data or not extracted_data['ingredients_text']:
              extracted_data['ingredients_text'] = "\n".join(raw_ingredients_list)
-    elif raw_ingredients_text:
-         source_list = raw_ingredients_text.strip().split('\n')
 
     if source_list:
         logger.info(f"Parsing {len(source_list)} raw ingredient lines...")
@@ -240,11 +236,11 @@ elif import_method == "Document/Image Analysis (Document Intelligence)":
                 # 2. Call ai_services.analyze_recipe_document(doc_intel_client, selected_model_id, combined_doc_bytes) -> returns AnalyzeResult
                 result = analyze_recipe_document(doc_intel_client, selected_model_id, combined_doc_bytes)
                 # 3. Process AnalyzeResult to get title, ingredients_text, instructions_text
-                analysis_output = process_doc_intel_analyze_result(result, selected_model_id)
+                analysis_output = process_doc_intel_analyze_result(result["documents"][0]["fields"], selected_model_id)
                 # 4. Prepare extracted_data dictionary
                 extracted_data = {
                     'title': analysis_output.get('title'),
-                    'ingredients_text': analysis_output.get('ingredients'),
+                    'ingredients': analysis_output.get('ingredients'),
                     'instructions_text': analysis_output.get('instructions'),
                     'total_time': analysis_output.get('total_time'), # Total time if available
                     'yields': analysis_output.get('yields'), # Yields if available

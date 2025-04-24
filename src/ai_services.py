@@ -6,6 +6,7 @@ perform the AI operation, and return processed results.
 """
 
 import logging
+import re
 from typing import Optional, List, Dict, Any, Union, IO
 from azure.core.exceptions import HttpResponseError, ServiceRequestError
 from azure.ai.textanalytics import TextAnalyticsClient, TextDocumentInput
@@ -17,10 +18,14 @@ from azure.cognitiveservices.speech import SpeechConfig, SpeechSynthesizer, Spee
 from azure.cognitiveservices.speech.audio import AudioConfig, PullAudioInputStream, PushAudioInputStream # For STT streaming
 from openai import AzureOpenAI # Using the 'openai' package configured for Azure
 import io # For handling byte streams
-from src.utils import extract_max_number
-
 # Configure logging
 logger = logging.getLogger(__name__)
+
+try:
+    from utils import extract_max_number, parse_doc_intel_ingredients
+except (ImportError, ModuleNotFoundError) as e:
+    from src.utils import extract_max_number, parse_doc_intel_ingredients # Fallback import for local testing
+    logger.warning(f"Import error: {e}. Using fallback import.")
 
 # --- Document Intelligence Service ---
 
@@ -85,15 +90,17 @@ def process_doc_intel_analyze_result(
 
     if selected_model_id.startswith("cucina_facile"):
         result = {
-            "title": doc_intel_analyze_result["title"] if "title" in doc_intel_analyze_result else None,
-            "ingredients": doc_intel_analyze_result["ingredients"] if "ingredients" in doc_intel_analyze_result else None,
-            "instructions": doc_intel_analyze_result["description"] if "description" in doc_intel_analyze_result else None,
-            "total_time": doc_intel_analyze_result["prep_time"] if "prep_time" in doc_intel_analyze_result else None,
-            "category": doc_intel_analyze_result["category"] if "category" in doc_intel_analyze_result else None,
-            "difficulty": doc_intel_analyze_result["difficulty"].count("·") if "difficulty" in doc_intel_analyze_result else None,
-            "drink": doc_intel_analyze_result["wine"] if "wine" in doc_intel_analyze_result else None
+            "title": doc_intel_analyze_result["title"]["valueString"] if "title" in doc_intel_analyze_result else None,
+            "ingredients": doc_intel_analyze_result["ingredients"]["valueString"] if "ingredients" in doc_intel_analyze_result else None,
+            "instructions": doc_intel_analyze_result["description"]["valueString"] if "description" in doc_intel_analyze_result else None,
+            "total_time": doc_intel_analyze_result["prep_time"]["valueString"] if "prep_time" in doc_intel_analyze_result else None,
+            "category": doc_intel_analyze_result["category"]["valueString"] if "category" in doc_intel_analyze_result else None,
+            "difficulty": doc_intel_analyze_result["difficulty"]["valueString"] if "difficulty" in doc_intel_analyze_result else None,
+            "drink": doc_intel_analyze_result["wine"]["valueString"] if "wine" in doc_intel_analyze_result else None
         }
+        result["difficulty"] = result["difficulty"].count("·") if result["difficulty"] else None
         result["total_time"] = extract_max_number(result["total_time"]) if result["total_time"] else None
+        result["ingredients"] = parse_doc_intel_ingredients(result["ingredients"], selected_model_id) if result["ingredients"] else None
 
     else:
         # Extract text and language from the result
@@ -399,4 +406,4 @@ def generate_recipe_from_prompt(
 #     # 3. Call OpenAI API (similar to generate_recipe_from_prompt)
 #     # 4. Parse the AI response into a dictionary
 #     pass
-
+    
