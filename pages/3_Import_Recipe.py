@@ -287,7 +287,7 @@ elif import_method == "Document/Image Analysis (Document Intelligence)":
                                  if parsed_ingredients_ner:
                                      logger.info(f"NER extracted {len(parsed_ingredients_ner)} potential ingredient structures.")
                                      # Add the NER result directly to the data to be stored
-                                     extracted_data['ingredients'] = parsed_ingredients_ner # Use 'ingredients' key for structured list
+                                     extracted_data['parsed_ingredients'] = parsed_ingredients_ner
                                  else:
                                      logger.warning("AI Language NER did not return structured ingredients.")
                                      # Keep ingredients_text for fallback parsing in process_and_store

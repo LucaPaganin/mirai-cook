@@ -194,6 +194,7 @@ def extract_recipe_ingredients(
 ) -> Optional[List[Dict[str, Any]]]:
     """
     Extracts structured ingredients with separate quantities and units using Azure AI Language NER.
+    This version focuses on extracting quantities and products, ignoring adjectives.
     """
     try:
         response = language_client.recognize_entities(documents=[ingredient_text])[0]
@@ -207,7 +208,6 @@ def extract_recipe_ingredients(
         return None
 
     # Extract the named entities from the response
-    # Entities are recognized by category and their position (offset) within the text
     entities = [
         {
             "text": e.text,
@@ -230,41 +230,51 @@ def extract_recipe_ingredients(
         current = entities[i]
         
         # Skip non-relevant categories (e.g., not a product, food, or quantity)
-        if current["category"] not in ["Product", "Food", "Other", "Quantity"]:
+        if current["category"] not in ["Product", "Food", "Other"]:
             i += 1
             continue
 
-        # Assume the current entity is part of a valid ingredient
+        # Initialize the ingredient name
         ingredient_name = current["text"]
         quantity = None
         j = i + 1
 
-        # Look ahead for potential quantities or measurements within a short distance
-        while j < len(entities) and entities[j]["offset"] - current["end"] < 20:
-            # Check if the next entity represents a quantity or measurement
-            if entities[j]["category"] in ["Quantity", "Measurement", "Number"]:
-                # Separate quantity and unit using the extract_quantity_and_unit function
-                quantity_info = parse_quantity_and_unit(entities[j]["text"])
-                if quantity_info:
-                    quantity = quantity_info
-                j += 1
-                break  # Stop after finding the first quantity for this ingredient
-        
-        # Combine the ingredient name with its quantity (if found)
-        if quantity:
+        # Skip any adjectives or extra descriptions (category "Other" or "Food")
+        while j < len(entities) and entities[j]["category"] in ["Other", "Food"]:
+            j += 1
+
+        # Now, look for the quantity after we've found the ingredient name
+        while j < len(entities) and entities[j]["category"] in ["Quantity", "Measurement", "Number"]:
+            # Parse the quantity and unit using the function defined above
+            quantity_info = parse_quantity_and_unit(entities[j]["text"])
+            if quantity_info:
+                quantity = quantity_info
+            else:
+                quantity = entities[j]["text"]
+            j += 1
+
+        # Add the ingredient to the list, along with its quantity if found
+        if isinstance(quantity, dict):
             ingredients.append({
-                "ingredient": ingredient_name,
-                "quantity": quantity
+                "name": ingredient_name,
+                "quantity": quantity["value"],
+                "unit": quantity["unit"],
+                "notes": ""
             })
         else:
             ingredients.append({
-                "ingredient": ingredient_name,
-                "quantity": None
+                "name": ingredient_name,
+                "quantity": quantity,
+                "notes": ""
             })
 
+        # Update `i` to point to the next unprocessed entity
         i = j  # Move to the next unprocessed entity
     
     return ingredients
+
+
+
 
 # --- Vision Service ---
 

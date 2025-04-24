@@ -222,15 +222,27 @@ def _parse_quantity(qty_str: str) -> Optional[float]:
 def parse_quantity_and_unit(quantity_text: str) -> Optional[Dict[str, str]]:
     """
     Separates the quantity from its unit of measure (e.g., "350 g" -> {"value": "350", "unit": "g"}).
-    Handles both dot and comma as decimal separators.
+    Handles both dot and comma as decimal separators, and also fractional quantities like "1/2".
     """
-    # Regex pattern con named groups per separare quantità e unità
-    # Named groups: 'value' per il numero, 'unit' per l'unità di misura
-    match = re.match(r'(?P<value>\d+([,.]?\d*)?)\s*(?P<unit>\D+)', quantity_text.strip())
+    # First, check for fractions like 1/2, 3/4
+    fraction_pattern = r'(?P<value>\d+\/\d+)'  # Detects fractions (e.g., 1/2, 3/4)
+    match_fraction = re.match(fraction_pattern, quantity_text.strip())
+    
+    if match_fraction:
+        # Convert fraction (e.g., 1/2) into a decimal value (e.g., 0.5)
+        fraction = match_fraction.group("value")
+        numerator, denominator = map(int, fraction.split("/"))
+        decimal_value = numerator / denominator
+        return {"value": str(decimal_value), "unit": None}  # No unit, or we could return a default unit
+
+    # Otherwise, handle regular quantity + unit (e.g., "350 g", "1.5 dl")
+    match = re.match(r'(?P<value>\d+([,.\/]?\d*)?)\s*(?P<unit>\D+)', quantity_text.strip())
     
     if match:
-        # Restituisci un dizionario con le informazioni estratte, usando i named groups
-        return {"value": match.group("value").replace(",", "."), "unit": match.group("unit").strip()}
+        # Return the value as string (replace comma with dot for decimal consistency)
+        value = match.group("value").replace(",", ".")
+        unit = match.group("unit").strip()
+        return {"value": value, "unit": unit}
     
     return None
 
@@ -308,6 +320,10 @@ def parse_doc_intel_ingredients(
 # --- Example Usage (for testing this module directly) ---
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
+
+    res = parse_quantity_and_unit("1/2")
+    assert res == {"value": "0.5", "unit": None}, f"Expected {'value': '0.5', 'unit': None}, but got {res}"
+
     # ingredient list parsing test
     ingredients_text = "ingredienti Riso Carnaroli, 350 g Speck tagliato grosso, 100 g Ricotta fresca, 60 g Gherigli di noce, 50 g Lattuga, 1 cespo Cipolla, 1 Aglio, 1 spicchio Parmigiano grattugiato Burro, 50 g Vino bianco secco, 1/2 bicchiere Brodo vegetale, 8 dl scarsi Prezzemolo, qualche foglia Olio extravergine d'oliva Sale, pepe"
     output = [
