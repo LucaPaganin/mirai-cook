@@ -114,15 +114,17 @@ def parse_single_ingredient_ner(
         found_unit = None
         quantity_entity_text = None # Store the text of the quantity entity
 
-        # Find the first Quantity/Dimension entity
+        # Find the first parsable Quantity/Dimension entity
         for entity in entities:
             if entity.category in ["Quantity", "Dimension"]:
                 qty, unit = parse_quantity_and_unit(entity.text) # Use helper from utils
-                if qty is not None: found_quantity = qty
-                if unit is not None: found_unit = unit
-                quantity_entity_text = entity.text # Remember the text
-                logger.debug(f"Found Qty/Unit Entity: text='{entity.text}', parsed_qty={qty}, parsed_unit={unit}")
-                break # Take the first one found
+                if qty is not None or unit is not None:
+                    # If we found a valid quantity or unit, store the entity text
+                    found_quantity = qty
+                    found_unit = unit
+                    quantity_entity_text = entity.text # Remember the text
+                    logger.debug(f"Found Qty/Unit Entity: text='{entity.text}', parsed_qty={qty}, parsed_unit={unit}")
+                    break # Take the first one found
 
         # Collect name parts (Product, Food, Other, Skill), excluding the quantity text
         for entity in entities:
