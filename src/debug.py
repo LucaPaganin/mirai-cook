@@ -18,7 +18,8 @@ if __name__ == "__main__":
                 "name": "Farina 00",
                 "quantity": 100,
                 "unit": "g",
-                "notes": None
+                "notes": None,
+                "original": "Farina 00 100 g"
             }
         },
         {
@@ -27,7 +28,8 @@ if __name__ == "__main__":
                 "name": "Riso Carnaroli",
                 "quantity": 350,
                 "unit": "g",
-                "notes": None
+                "notes": None,
+                "original": "Riso Carnaroli, 350 g"
             }
         },
         {
@@ -36,7 +38,8 @@ if __name__ == "__main__":
                 "name": "Speck",
                 "quantity": 100,
                 "unit": "g",
-                "notes": "tagliato grosso"
+                "notes": None,
+                "original": "Speck tagliato grosso, 100 g"
             }
         },
         {
@@ -45,7 +48,8 @@ if __name__ == "__main__":
                 "name": "Ricotta fresca",
                 "quantity": 60,
                 "unit": "g",
-                "notes": None
+                "notes": None,
+                "original": "Ricotta fresca, 60 g"
             }
         },
         {
@@ -54,7 +58,8 @@ if __name__ == "__main__":
                 "name": "Gherigli di noce",
                 "quantity": 50,
                 "unit": "g",
-                "notes": None
+                "notes": None,
+                "original": "Gherigli di noce, 50 g"
             }
         },
         {
@@ -62,8 +67,9 @@ if __name__ == "__main__":
             "expected": {
                 "name": "Lattuga",
                 "quantity": 1,
-                "unit": "cespo",
-                "notes": None
+                "unit": None,
+                "notes": None,
+                "original": "Lattuga, 1 cespo"
             }
         },
         {
@@ -72,7 +78,8 @@ if __name__ == "__main__":
                 "name": "Cipolla",
                 "quantity": 1,
                 "unit": None,
-                "notes": None
+                "notes": None,
+                "original": "Cipolla, 1"
             }
         },
         {
@@ -81,7 +88,8 @@ if __name__ == "__main__":
                 "name": "Aglio",
                 "quantity": 1,
                 "unit": "spicchio",
-                "notes": None
+                "notes": None,
+                "original": "Aglio, 1 spicchio"
             }
         },
         {
@@ -90,7 +98,8 @@ if __name__ == "__main__":
                 "name": "Parmigiano",
                 "quantity": None,
                 "unit": None,
-                "notes": "grattugiato"
+                "notes": "grattugiato",
+                "original": "Parmigiano grattugiato"
             }
         },
         {
@@ -99,7 +108,8 @@ if __name__ == "__main__":
                 "name": "Burro",
                 "quantity": 50,
                 "unit": "g",
-                "notes": None
+                "notes": None,
+                "original": "Burro, 50 g"
             }
         },
         {
@@ -108,7 +118,8 @@ if __name__ == "__main__":
                 "name": "Vino bianco secco",
                 "quantity": 0.5,
                 "unit": "bicchiere",
-                "notes": None
+                "notes": None,
+                "original": "Vino bianco secco, 1/2 bicchiere"
             }
         },
         {
@@ -117,7 +128,8 @@ if __name__ == "__main__":
                 "name": "Brodo vegetale",
                 "quantity": 8,
                 "unit": "dl",
-                "notes": "scarsi"
+                "notes": "scarsi",
+                "original": "Brodo vegetale, 8 dl scarsi"
             }
         },
         {
@@ -126,7 +138,8 @@ if __name__ == "__main__":
                 "name": "Prezzemolo",
                 "quantity": None,
                 "unit": "foglia",
-                "notes": "qualche"
+                "notes": "qualche",
+                "original": "Prezzemolo, qualche foglia"
             }
         },
         {
@@ -135,7 +148,8 @@ if __name__ == "__main__":
                 "name": "Olio extravergine d'oliva",
                 "quantity": None,
                 "unit": None,
-                "notes": None
+                "notes": None,
+                "original": "Olio extravergine d'oliva"
             }
         },
         {
@@ -144,7 +158,8 @@ if __name__ == "__main__":
                 "name": "Sale, pepe",
                 "quantity": None,
                 "unit": None,
-                "notes": None
+                "notes": None,
+                "original": "Sale, pepe"
             }
         },
         {
@@ -153,7 +168,8 @@ if __name__ == "__main__":
                 "name": "burro",
                 "quantity": 100,
                 "unit": "g",
-                "notes": "ammorbidito"
+                "notes": "ammorbidito",
+                "original": "100g burro, ammorbidito"
             }
         },
         {
@@ -162,7 +178,8 @@ if __name__ == "__main__":
                 "name": "farina",
                 "quantity": 100,
                 "unit": "g",
-                "notes": None
+                "notes": None,
+                "original": "g 100 farina"
             }
         },
         {
@@ -171,7 +188,8 @@ if __name__ == "__main__":
                 "name": "Cipolle dorate",
                 "quantity": 1.5,
                 "unit": "kg",
-                "notes": None
+                "notes": None,
+                "original": "Cipolle dorate 1,5 kg"
             }
         },
         {
@@ -180,7 +198,8 @@ if __name__ == "__main__":
                 "name": "farina 00",
                 "quantity": 2,
                 "unit": "tazze",
-                "notes": "setacciata"
+                "notes": "setacciata",
+                "original": "2 tazze di farina 00, setacciata"
             }
         },
         {
@@ -189,7 +208,8 @@ if __name__ == "__main__":
                 "name": "bicarbonato di sodio",
                 "quantity": 1.5,
                 "unit": "cucchiaino",
-                "notes": None
+                "notes": None,
+                "original": "1 1/2 cucchiaino di bicarbonato di sodio"
             }
         },
         {
@@ -198,7 +218,8 @@ if __name__ == "__main__":
                 "name": "zucchero semolato",
                 "quantity": 0.5,
                 "unit": "tazza",
-                "notes": None
+                "notes": None,
+                "original": "1/2 tazza di zucchero semolato"
             }
         },
         {
@@ -207,7 +228,8 @@ if __name__ == "__main__":
                 "name": "uova",
                 "quantity": 2,
                 "unit": None,
-                "notes": "grandi"
+                "notes": "grandi",
+                "original": "2 uova grandi"
             }
         },
         {
@@ -216,7 +238,8 @@ if __name__ == "__main__":
                 "name": "limone",
                 "quantity": 1,
                 "unit": None,
-                "notes": "scorza e succo"
+                "notes": "scorza e succo",
+                "original": "1 limone (scorza e succo)"
             }
         },
         {
@@ -225,7 +248,8 @@ if __name__ == "__main__":
                 "name": "Sale",
                 "quantity": None,
                 "unit": None,
-                "notes": "q.b."
+                "notes": "q.b.",
+                "original": "Sale q.b."
             }
         },
         {
@@ -234,7 +258,8 @@ if __name__ == "__main__":
                 "name": "noce moscata",
                 "quantity": None,
                 "unit": "pizzico",
-                "notes": None
+                "notes": None,
+                "original": "Un pizzico di noce moscata"
             }
         },
         {
@@ -243,7 +268,8 @@ if __name__ == "__main__":
                 "name": "patate",
                 "quantity": 1,
                 "unit": "kg",
-                "notes": None
+                "notes": None,
+                "original": "1 kg patate"
             }
         },
         {
@@ -252,7 +278,8 @@ if __name__ == "__main__":
                 "name": "acqua",
                 "quantity": 1.5,
                 "unit": "litri",
-                "notes": None
+                "notes": None,
+                "original": "1,5 litri d'acqua"
             }
         },
         {
@@ -261,7 +288,8 @@ if __name__ == "__main__":
                 "name": "carne macinata di manzo",
                 "quantity": 0.25,
                 "unit": "lb",
-                "notes": None
+                "notes": None,
+                "original": "1/4 lb carne macinata di manzo"
             }
         },
         {
@@ -270,7 +298,8 @@ if __name__ == "__main__":
                 "name": "pomodori a cubetti",
                 "quantity": 1,
                 "unit": "lattina",
-                "notes": "14,5 oz"
+                "notes": "14,5 oz",
+                "original": "1 lattina (14,5 oz) di pomodori a cubetti"
             }
         },
         {
@@ -279,7 +308,8 @@ if __name__ == "__main__":
                 "name": "aglio",
                 "quantity": 3,
                 "unit": "spicchi",
-                "notes": "tritati"
+                "notes": "tritati",
+                "original": "3 spicchi d'aglio, tritati"
             }
         },
         {
@@ -288,7 +318,8 @@ if __name__ == "__main__":
                 "name": "prosciutto cotto",
                 "quantity": 0.5,
                 "unit": "etto",
-                "notes": None
+                "notes": None,
+                "original": "1/2 etto prosciutto cotto"
             }
         },
         {
@@ -297,7 +328,8 @@ if __name__ == "__main__":
                 "name": "Sale e pepe",
                 "quantity": None,
                 "unit": None,
-                "notes": None
+                "notes": None,
+                "original": "Sale e pepe"
             }
         },
         {
@@ -306,7 +338,8 @@ if __name__ == "__main__":
                 "name": "Brodo vegetale",
                 "quantity": None,
                 "unit": None,
-                "notes": None
+                "notes": None,
+                "original": "Brodo vegetale"
             }
         },
         {
@@ -315,7 +348,8 @@ if __name__ == "__main__":
                 "name": "mele",
                 "quantity": 2,
                 "unit": None,
-                "notes": None
+                "notes": None,
+                "original": "2 mele"
             }
         },
         {
@@ -324,7 +358,8 @@ if __name__ == "__main__":
                 "name": "farina 00",
                 "quantity": 100,
                 "unit": None,
-                "notes": None
+                "notes": None,
+                "original": "100 farina 00"
             }
         },
         {
@@ -333,7 +368,8 @@ if __name__ == "__main__":
                 "name": "Farina",
                 "quantity": 100,
                 "unit": "g",
-                "notes": None
+                "notes": None,
+                "original": "Farina 100 g"
             }
         },
         {
@@ -342,7 +378,8 @@ if __name__ == "__main__":
                 "name": "Uova",
                 "quantity": 2,
                 "unit": None,
-                "notes": "grandi"
+                "notes": "grandi",
+                "original": "Uova 2 grandi"
             }
         },
         {
@@ -351,7 +388,8 @@ if __name__ == "__main__":
                 "name": "Olio d'oliva",
                 "quantity": 2,
                 "unit": "cucchiai",
-                "notes": None
+                "notes": None,
+                "original": "Olio d'oliva 2 cucchiai"
             }
         },
         {
@@ -360,7 +398,8 @@ if __name__ == "__main__":
                 "name": "Basilico",
                 "quantity": 1,
                 "unit": "mazzetto",
-                "notes": None
+                "notes": None,
+                "original": "Basilico 1 mazzetto"
             }
         },
         {
@@ -369,7 +408,8 @@ if __name__ == "__main__":
                 "name": "Sale",
                 "quantity": 1,
                 "unit": "CUCCHIAINO",
-                "notes": None
+                "notes": None,
+                "original": "1 CUCCHIAINO Sale"
             }
         }
     ]
@@ -387,7 +427,10 @@ if __name__ == "__main__":
             pickle.dump(language_client, f)
     
     
-    for test_line in test_ingredients:
+    for item in test_ingredients:
+        test_line = item["text"]
+        expected = item["expected"]
         print(f"Testing line: {test_line}")
         result = parse_single_ingredient_ner(language_client, test_line)
         print(f"Parsed result: {result}")
+        assert result == expected, f"Test failed for line: {test_line}. Expected: {expected}, but got: {result}"

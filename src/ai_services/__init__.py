@@ -34,7 +34,7 @@ except ImportError as e:
 try:
     from .language import (
         classify_recipe_category,
-        extract_structured_ingredients_ner # The primary NER function
+        extract_structured_ingredients_ner_block
     )
 except ImportError as e:
     print(f"Warning: Could not import from .language: {e}")
