@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 """
 Streamlit page for manually adding or editing recipes in Mirai Cook.
-Handles pre-population of form fields if data is imported from page 3.
+Handles pre-population of form fields if data is imported from page 3,
+using the pre-parsed ingredient data and other extracted fields.
 Corrected state persistence for default values across page navigations.
 """
 
@@ -14,12 +15,14 @@ import os
 from typing import List, Optional
 
 # --- Setup Project Root Path ---
+# Allows importing from the 'src' module
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 # --- Import Application Modules ---
 try:
+    # Recipe model now uses 'category' instead of 'portata_category' and 'total_time_minutes'
     from src.models import Recipe, IngredientItem, IngredientEntity, sanitize_for_id
     from src.persistence import (
        save_recipe,
@@ -64,6 +67,7 @@ if not clients_ready:
 else:
     recipe_container = st.session_state[SESSION_STATE_RECIPE_CONTAINER]
     ingredients_container = st.session_state[SESSION_STATE_INGREDIENT_CONTAINER]
+    # blob_client = st.session_state.get(SESSION_STATE_BLOB_CLIENT) # Get when needed for upload
     logger.info("Retrieved required Cosmos DB container clients.")
 
 
@@ -72,9 +76,10 @@ else:
 default_keys = [
     'form_default_title', 'form_default_instructions', 'form_default_num_people',
     'form_default_total_time', 'imported_image_url', 'original_source_type',
-    'original_source_url', 'confirmed_ingredient_map', 'form_default_difficulty', 'form_default_season'
+    'original_source_url', 'confirmed_ingredient_map', 'form_default_difficulty',
+    'form_default_season', 'form_default_category' # Added category default key
 ]
-default_values = ["", "", None, None, None, 'Manuale', None, {}, '', ''] # Added defaults for selectboxes
+default_values = ["", "", None, None, None, 'Manuale', None, {}, '', '', ''] # Added default for category
 for key, default_value in zip(default_keys, default_values):
     if key not in st.session_state: st.session_state[key] = default_value
 if 'manual_ingredients_df' not in st.session_state:
@@ -102,25 +107,52 @@ if imported_data:
     except (ValueError, TypeError):
          st.session_state['form_default_total_time'] = None
          logger.warning(f"Could not convert imported total_time '{total_time_raw}' to integer.")
+    # Pre-populate category (assuming 'category' key exists in imported_data)
+    st.session_state['form_default_category'] = imported_data.get('category', '') # Use empty string if not found
+    logger.info(f"Imported category: '{st.session_state['form_default_category']}'")
 
-    # Pre-populate ingredients editor
+
+    # --- Use the PARSED ingredients ---
     parsed_ingredients_list = imported_data.get('parsed_ingredients', [])
-    initial_ingredients_df_data = []
+    initial_ingredients_df_data = [] # Reset list for building DataFrame data
+
     if parsed_ingredients_list:
         logger.info(f"Pre-populating ingredients editor with {len(parsed_ingredients_list)} parsed items.")
+        # Convert the list of dicts directly to the format needed for the DataFrame
         for parsed_item in parsed_ingredients_list:
             initial_ingredients_df_data.append({
-                "Quantity": parsed_item.get("quantity"), "Unit": parsed_item.get("unit", ""),
-                "Ingredient Name": parsed_item.get("name", parsed_item.get("original","")),
-                "Notes": parsed_item.get("notes", "")
+                "Quantity": parsed_item.get("quantity"), # Use parsed quantity
+                "Unit": parsed_item.get("unit", ""),      # Use parsed unit or empty string
+                "Ingredient Name": parsed_item.get("name", parsed_item.get("original","")), # Use parsed name or fallback
+                "Notes": parsed_item.get("notes", "")     # Use parsed notes
             })
-    else: logger.warning("No parsed ingredients found in imported data.")
+    else:
+         # Fallback: Try parsing the raw text again if parsed_ingredients is missing/empty
+         ingredients_text = imported_data.get('ingredients_text', '')
+         if ingredients_text:
+             logger.warning("Parsed ingredients list missing in imported data, attempting to parse raw text again.")
+             for line in ingredients_text.strip().split('\n'):
+                 if line.strip():
+                     parsed = parse_ingredient_string(line.strip()) # Call parser here as fallback
+                     initial_ingredients_df_data.append({
+                         "Quantity": parsed.get("quantity"),
+                         "Unit": parsed.get("unit", ""),
+                         "Ingredient Name": parsed.get("name", line.strip()),
+                         "Notes": parsed.get("notes", "(Imported - verify Qty/Unit)")
+                     })
+             logger.info(f"Fallback parsing created {len(initial_ingredients_df_data)} ingredient lines.")
+         else:
+             logger.warning("No parsed ingredients or raw ingredients text found in imported data.")
+
+    # Set the initial state for the data editor
     st.session_state['manual_ingredients_df'] = pd.DataFrame(initial_ingredients_df_data)
 
-    # Clear the temporary import data key ONLY
+    # --- IMPORTANT: Clear the temporary import data key ---
+    # Do this AFTER processing it for the current run
     st.session_state['imported_recipe_data'] = None
     logger.info("Cleared imported_recipe_data from session state.")
-    # NO RERUN HERE - Let the rest of the script use the defaults set above
+
+    # NO RERUN HERE - Let the script continue to render the form with defaults
 
 # --- Retrieve default values from session state for rendering ---
 # These values persist across reruns unless cleared on save/failure
@@ -131,6 +163,7 @@ current_default_num_people = st.session_state.get('form_default_num_people')
 current_default_total_time = st.session_state.get('form_default_total_time')
 current_default_difficulty = st.session_state.get('form_default_difficulty', '')
 current_default_season = st.session_state.get('form_default_season', '')
+current_default_category = st.session_state.get('form_default_category', '') # Get default category
 
 
 # --- Display Imported Image (if available) ---
@@ -140,6 +173,7 @@ if current_imported_image_url:
     st.markdown("---")
 
 # --- Recipe Input Form ---
+# The form widgets will now use the 'current_default_...' variables set above
 with st.form("recipe_form", clear_on_submit=True):
     st.subheader("Recipe Details")
 
@@ -153,6 +187,7 @@ with st.form("recipe_form", clear_on_submit=True):
         num_people = st.number_input("Servings (People)", min_value=1, step=1, value=current_default_num_people, key="num_people")
     with col2:
         difficulty_options = ["", "Easy", "Medium", "Hard", "Expert"]
+        # Find index for default value if needed, otherwise default to 0 ("")
         difficulty_index = difficulty_options.index(current_default_difficulty) if current_default_difficulty in difficulty_options else 0
         difficulty = st.selectbox("Difficulty", options=difficulty_options, index=difficulty_index, key="difficulty")
     with col3:
@@ -162,6 +197,11 @@ with st.form("recipe_form", clear_on_submit=True):
 
     # Single Time Input
     total_time = st.number_input("Total Time (prep + cook, minutes)", min_value=0, step=5, value=current_default_total_time, key="total_time")
+
+    # --- Category Input ---
+    # Changed from selectbox to text_input, uses default value
+    category = st.text_input("Category", value=current_default_category, placeholder="e.g., Primo, Main Course, Dessert", key="category_input")
+    # --- END Category Input ---
 
     st.divider()
 
@@ -182,9 +222,6 @@ with st.form("recipe_form", clear_on_submit=True):
 
     st.caption("* Quantity and Ingredient Name are required.")
     st.divider()
-    st.markdown("**Category:** (Automatic suggestion and selection to be added)")
-    portata_category_manual = st.selectbox("Recipe Category (Manual)", ["", "Antipasto", "Primo", "Secondo", "Contorno", "Dolce", "Piatto Unico", "Altro"], index=0, placeholder="Select category...", key="porta_cat")
-    st.divider()
     submitted = st.form_submit_button("💾 Save Recipe")
 
 # --- Form Submission Logic ---
@@ -200,7 +237,7 @@ if submitted:
     num_people_val = int(num_people) if num_people is not None else None
     difficulty_val = difficulty if difficulty else None
     season_val = season if season else None
-    portata_category_val = portata_category_manual if portata_category_manual else None
+    category_val = category.strip() if category else None # Get value from text_input
     total_time_val = int(total_time) if total_time is not None else None
     final_image_url = st.session_state.get('imported_image_url') # Get potentially imported URL
     # TODO: Add logic for handling NEW photo_upload widget value
@@ -228,6 +265,7 @@ if submitted:
         st.session_state['form_default_total_time'] = total_time # Store raw value from widget
         st.session_state['form_default_difficulty'] = difficulty # Store raw value from widget
         st.session_state['form_default_season'] = season # Store raw value from widget
+        st.session_state['form_default_category'] = category # Store category too
         # manual_ingredients_df is already updated
 
     if validation_ok:
@@ -252,6 +290,7 @@ if submitted:
                         existing_entity = get_ingredient_entity(ingredients_container, ingredient_id_candidate)
                         if existing_entity: confirmed_ingredient_id = existing_entity.id
                         else:
+                            # TODO: Implement similarity check + HITL prompt
                             logger.warning(f"No exact match for '{name}'. Creating new entry.")
                             new_entity_data = IngredientEntity(id=ingredient_id_candidate, displayName=name.strip())
                             saved_entity = upsert_ingredient_entity(ingredients_container, new_entity_data)
@@ -267,8 +306,8 @@ if submitted:
             if not all_ingredients_processed_successfully:
                  st.error("Recipe saving aborted due to ingredient processing errors.")
             else:
-                # 4. Get Category (Manual for now)
-                confirmed_category = portata_category_val
+                # 4. Get Category (Now from text input)
+                confirmed_category = category_val
                 logger.info(f"Using category: {confirmed_category}")
 
                 # 5. Create Recipe Pydantic Object
@@ -282,7 +321,7 @@ if submitted:
                         title=title.strip(),
                         instructions=instructions.strip(),
                         ingredients=ingredient_items_list,
-                        portata_category=confirmed_category,
+                        category=confirmed_category, # Use the renamed field
                         num_people=num_people_val,
                         difficulty=difficulty_val,
                         season=season_val,
@@ -314,6 +353,7 @@ if submitted:
                         st.session_state['form_default_total_time'] = None
                         st.session_state['form_default_difficulty'] = ''
                         st.session_state['form_default_season'] = ''
+                        st.session_state['form_default_category'] = '' # Clear category default
 
                         st.rerun() # Reset form and show success
                     else:
@@ -325,6 +365,7 @@ if submitted:
                         st.session_state['form_default_total_time'] = total_time
                         st.session_state['form_default_difficulty'] = difficulty
                         st.session_state['form_default_season'] = season
+                        st.session_state['form_default_category'] = category # Store category
 
                 except Exception as model_error:
                      st.error(f"Error creating recipe data: {model_error}")
@@ -333,5 +374,6 @@ if submitted:
             st.error(f"An unexpected error occurred: {e}")
             logger.error(f"Error during recipe processing/saving: {e}", exc_info=True)
 
-# --- REMOVED the cleanup block from the end ---
+# --- Clean up temporary form defaults after rendering ---
+# Removed the cleanup block as state is managed on success/failure now
 
