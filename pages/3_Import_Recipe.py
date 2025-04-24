@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 """
 Streamlit page for importing recipes into Mirai Cook.
-Separates Document Intelligence result processing from AI Language ingredient extraction.
+Integrates ingredient parsing using utils for URL scraping and
+attempts structured extraction via AI Language NER after Doc Intel analysis.
 """
 
 import streamlit as st
@@ -13,6 +14,7 @@ import pandas as pd # To display parsed ingredients preview
 import io # For combining images
 
 # --- Setup Project Root Path ---
+# Allows importing from the 'src' module
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
@@ -22,10 +24,12 @@ try:
     from src.azure_clients import (
         SESSION_STATE_DOC_INTEL_CLIENT,
         SESSION_STATE_OPENAI_CLIENT,
-        SESSION_STATE_LANGUAGE_CLIENT, # Language client key needed here
+        SESSION_STATE_LANGUAGE_CLIENT, # Added Language client key
         SESSION_STATE_CLIENTS_INITIALIZED
     )
+    # Import the scraping function
     from src.recipe_scraping import scrape_recipe_metadata
+    # Import the ingredient parsing utility
     from src.utils import parse_ingredient_string
     # Import AI service functions
     from src.ai_services import (
@@ -37,7 +41,7 @@ try:
     # Import image combination utility if implemented
     # from src.utils import combine_images_to_pdf
 except ImportError as e:
-    st.error(f"Error importing application modules: {e}. Check PYTHONPATH.")
+    st.error(f"Error importing application modules: {e}. Check PYTHONPATH and module locations.")
     st.stop()
 
 # --- Configure Logging ---
@@ -54,10 +58,11 @@ st.title("📥 Import Recipe")
 st.markdown("Add recipes by providing a URL or uploading a document/image for analysis.")
 
 # --- Check if NECESSARY Azure Clients are Initialized ---
+# Now requires Language client as well for ingredient extraction fallback/processing
 required_clients = [
     SESSION_STATE_DOC_INTEL_CLIENT,
     SESSION_STATE_OPENAI_CLIENT,
-    SESSION_STATE_LANGUAGE_CLIENT # Required
+    SESSION_STATE_LANGUAGE_CLIENT # Added requirement
 ]
 clients_ready = True
 missing_clients = []
@@ -87,7 +92,7 @@ if 'imported_recipe_data' not in st.session_state:
 # --- Helper Function to Parse and Store ---
 def process_and_store_extracted_data(extracted_data: Dict[str, Any]):
     """
-    Processes ingredient data (raw text/list OR pre-parsed list)
+    Processes ingredient data (either raw text/list or pre-extracted dicts)
     and stores structured data in session state.
     """
     if not extracted_data:
@@ -96,20 +101,42 @@ def process_and_store_extracted_data(extracted_data: Dict[str, Any]):
 
     parsed_ingredients_list = []
     # Check if 'parsed_ingredients' key already exists (from direct NER call)
-    if 'parsed_ingredients' in extracted_data and isinstance(extracted_data['parsed_ingredients'], list):
-        logger.info(f"Using {len(extracted_data['parsed_ingredients'])} pre-parsed ingredients.")
-        parsed_ingredients_list = extracted_data['parsed_ingredients'] # Assume it's already in the correct format
+    # OR if 'ingredients' contains dicts (updated NER output format)
+    ingredients_input = extracted_data.get('ingredients')
+    is_pre_parsed = False
+    if isinstance(ingredients_input, list) and ingredients_input:
+         # Check if the first item looks like the NER output structure
+         first_item = ingredients_input[0]
+         if isinstance(first_item, dict) and "ingredient" in first_item and "quantity" in first_item:
+             is_pre_parsed = True
+
+    if is_pre_parsed:
+        logger.info(f"Using {len(ingredients_input)} pre-structured ingredients from NER.")
+        # Map keys from NER output to the format expected by parse_ingredient_string output
+        for item in ingredients_input:
+            qty_info = item.get("quantity") # This is expected to be {"value": num, "unit": str} or None
+            parsed_ingredients_list.append({
+                "quantity": qty_info.get("value") if qty_info else None,
+                "unit": qty_info.get("unit") if qty_info else None,
+                "name": item.get("ingredient"),
+                "notes": None, # NER doesn't typically extract notes this way
+                # Reconstruct an approximate original line for reference
+                "original": f"{item.get('ingredient')} {qty_info.get('value', '')} {qty_info.get('unit', '')}".strip() if qty_info else item.get('ingredient')
+            })
     else:
         # Fallback to parsing raw strings if 'parsed_ingredients' is not present
+        # or if 'ingredients' is a list of strings (from scraper)
         raw_ingredients_list = []
-        ingredients_input = extracted_data.get('ingredients') # From scraper list or DI raw text block
         if isinstance(ingredients_input, list): # List of strings from scraper
              raw_ingredients_list = ingredients_input
              if 'ingredients_text' not in extracted_data or not extracted_data['ingredients_text']:
                  extracted_data['ingredients_text'] = "\n".join(raw_ingredients_list)
-        elif isinstance(ingredients_input, str): # Text block from DI/AI
-             raw_ingredients_list = ingredients_input.strip().split('\n')
-             extracted_data['ingredients_text'] = ingredients_input # Ensure text version exists
+        # Use ingredients_text if ingredients wasn't a list or was empty
+        elif isinstance(extracted_data.get('ingredients_text'), str):
+             raw_ingredients_list = extracted_data['ingredients_text'].strip().split('\n')
+             # Ensure ingredients_text key exists if we parsed from it
+             if 'ingredients_text' not in extracted_data:
+                 extracted_data['ingredients_text'] = "\n".join(raw_ingredients_list)
 
         if raw_ingredients_list:
             logger.info(f"Parsing {len(raw_ingredients_list)} raw ingredient lines using utils.parse_ingredient_string...")
@@ -118,11 +145,11 @@ def process_and_store_extracted_data(extracted_data: Dict[str, Any]):
                     parsed = parse_ingredient_string(line.strip())
                     parsed_ingredients_list.append(parsed)
             logger.info(f"Generated {len(parsed_ingredients_list)} parsed ingredient structures via utils.")
-            extracted_data['parsed_ingredients'] = parsed_ingredients_list # Add parsed list
         else:
             logger.warning("No raw ingredient data found to parse.")
-            extracted_data['parsed_ingredients'] = [] # Ensure key exists
 
+    # Add/Replace the parsed list in the dictionary using the consistent key
+    extracted_data['parsed_ingredients'] = parsed_ingredients_list
     # Store the complete data in session state
     st.session_state['imported_recipe_data'] = extracted_data
     logger.debug(f"Stored imported_recipe_data in session state: {st.session_state['imported_recipe_data']}")
@@ -167,10 +194,12 @@ if import_method == "URL":
                     "total_time": scraped_data.get("total_time"),
                     "category": scraped_data.get("category"),
                     "difficulty": scraped_data.get("difficulty"),
+                    "calories": scraped_data.get("calories") # Pass scraped calories
                 }
             else:
                 logger.warning(f"recipe-scrapers failed for {recipe_url}. Attempting AI fallback.")
                 # --- TODO: Implement AI Fallback Logic ---
+                # Remember to try and extract title, ingredients_text, instructions_text, yields, total_time, category, difficulty, calories
                 st.warning("Automatic scraping failed. AI fallback not yet implemented.")
 
             # 2. Process (parse ingredients using utils) and Store
@@ -186,6 +215,12 @@ if import_method == "URL":
                 st.success("Recipe data extracted and parsed!")
                 st.markdown("**Extracted Data Preview:**")
                 st.text(f"Title: {imported_result.get('title', 'N/A')}")
+                # Display other fields
+                st.text(f"Yields: {imported_result.get('yields', 'N/A')}")
+                st.text(f"Time: {imported_result.get('total_time', 'N/A')}")
+                st.text(f"Category: {imported_result.get('category', 'N/A')}")
+                st.text(f"Difficulty: {imported_result.get('difficulty', 'N/A')}")
+                st.text(f"Calories (approx): {imported_result.get('calories', 'N/A')}")
                 img_url = imported_result.get('image_url')
                 if img_url: st.image(img_url, caption="Image found", width=200)
 
@@ -199,6 +234,7 @@ if import_method == "URL":
 
                 st.markdown("---")
                 st.info("✅ Data is ready! Please go to the **Add/Edit Recipe** page to review and save.")
+            # else: Error messages handled within the logic
 
     elif submit_url and not recipe_url:
         st.warning("Please enter a URL.")
@@ -253,8 +289,8 @@ elif import_method == "Document/Image Analysis (Document Intelligence)":
                     analyze_result = analyze_recipe_document(doc_intel_client, selected_model_id, combined_doc_bytes)
 
                     if analyze_result and analyze_result.documents:
-                        # 3. Process AnalyzeResult using the updated function (which NO LONGER calls NER)
-                        # It should return the raw ingredient text block if found.
+                        # 3. Process AnalyzeResult (assumes process_doc_intel_analyze_result handles parsing fields)
+                        # This function should return the raw ingredient text block if found.
                         analysis_output = process_doc_intel_analyze_result(
                             analyze_result.documents[0].fields, # Pass the fields dictionary
                             selected_model_id
@@ -265,8 +301,7 @@ elif import_method == "Document/Image Analysis (Document Intelligence)":
                         if analysis_output and analysis_output.get('title'):
                              extracted_data = {
                                  'title': analysis_output.get('title'),
-                                 # Store the RAW ingredient text block
-                                 'ingredients_text': analysis_output.get('ingredients'),
+                                 'ingredients_text': analysis_output.get('ingredients'), # Raw text block
                                  'instructions_text': analysis_output.get('instructions'),
                                  'total_time': analysis_output.get('total_time'),
                                  'yields': analysis_output.get('yields'),
@@ -275,27 +310,28 @@ elif import_method == "Document/Image Analysis (Document Intelligence)":
                                  'image_url': None,
                                  'drink': analysis_output.get('drink'),
                                  'category': analysis_output.get('category'),
+                                 'calories': analysis_output.get('calories')
                              }
 
-                             # --- NEW: Call AI Language NER Separately ---
+                             # --- Call AI Language NER Separately ---
                              ingredients_text_block = extracted_data.get('ingredients_text')
-                             parsed_ingredients_ner = None
                              if ingredients_text_block:
                                  logger.info("Attempting ingredient extraction using AI Language NER...")
                                  with st.spinner("Extracting structured ingredients..."):
                                      parsed_ingredients_ner = extract_recipe_ingredients(language_client, ingredients_text_block)
                                  if parsed_ingredients_ner:
-                                     logger.info(f"NER extracted {len(parsed_ingredients_ner)} potential ingredient structures.")
-                                     # Add the NER result directly to the data to be stored
-                                     extracted_data['parsed_ingredients'] = parsed_ingredients_ner
+                                     # Replace the raw text block with the structured list from NER
+                                     extracted_data['ingredients'] = parsed_ingredients_ner
+                                     logger.info(f"NER extracted {len(parsed_ingredients_ner)} structures.")
                                  else:
-                                     logger.warning("AI Language NER did not return structured ingredients.")
-                                     # Keep ingredients_text for fallback parsing in process_and_store
+                                     logger.warning("AI Language NER did not return structured ingredients. Will rely on utils parsing.")
+                                     # Ensure 'ingredients' key holds the text block for fallback parsing
+                                     extracted_data['ingredients'] = ingredients_text_block
                              else:
-                                 logger.warning("No ingredient text block extracted by Document Intelligence to send to NER.")
-                             # --- END NEW ---
+                                 logger.warning("No ingredient text block from DI for NER.")
+                                 extracted_data['ingredients'] = None # Ensure it's None or empty list/string
 
-                             # 5. Process and store (will use structured 'ingredients' if NER succeeded)
+                             # 5. Process and store (will use structured 'ingredients' if NER succeeded, else parse text)
                              processed_ok = process_and_store_extracted_data(extracted_data)
                         else:
                             st.error("Could not extract necessary fields (like title) from the document analysis result.")
@@ -323,6 +359,7 @@ elif import_method == "Document/Image Analysis (Document Intelligence)":
                 st.text(f"Time: {imported_result.get('total_time', 'N/A')}")
                 st.text(f"Yields: {imported_result.get('yields', 'N/A')}")
                 st.text(f"Drink: {imported_result.get('drink', 'N/A')}")
+                st.text(f"Calories (approx): {imported_result.get('calories', 'N/A')}")
 
                 st.text("Parsed Ingredients (Attempted via NER/Utils):")
                 parsed_ingredients_preview = imported_result.get('parsed_ingredients', [])

@@ -4,13 +4,28 @@ Utility functions for scraping recipe data from URLs.
 Primarily uses the 'recipe-scrapers' library.
 """
 
-import logging
+import logging, re
 from recipe_scrapers import scrape_me
 from recipe_scrapers import WebsiteNotImplementedError, NoSchemaFoundInWildMode
 from typing import Dict, Optional, List, Any
 
 # Configure logging
 logger = logging.getLogger(__name__)
+
+def _parse_calories_from_string(cal_string: Optional[str]) -> Optional[int]:
+    """Helper to extract integer calories from a string like '250 kcal' or 'Calories: 300'."""
+    if not cal_string:
+        return None
+    # Find numbers in the string
+    numbers = re.findall(r'\d+', cal_string)
+    if numbers:
+        try:
+            # Take the first number found
+            return int(numbers[0])
+        except ValueError:
+            logger.warning(f"Could not convert found number '{numbers[0]}' to integer in calorie string: '{cal_string}'")
+            return None
+    return None
 
 def scrape_recipe_metadata(url: str) -> Optional[Dict[str, Any]]:
     """
@@ -52,6 +67,38 @@ def scrape_recipe_metadata(url: str) -> Optional[Dict[str, Any]]:
         scraped_data['nutrients'] = scraper.nutrients() # Dictionary, often incomplete or absent
         scraped_data['canonical_url'] = scraper.canonical_url()
         scraped_data['host'] = scraper.host()
+
+        # --- Attempt to extract Calories ---
+        scraped_data['calories'] = None # Initialize calories key
+        try:
+            nutrients = scraper.nutrients() # This returns a Dict
+            if nutrients and isinstance(nutrients, dict):
+                # Look for common keys (case-insensitive check)
+                cal_value = None
+                for key in ['calories', 'calorie', 'kcal', 'energy']:
+                    if key in nutrients:
+                        cal_value = nutrients[key]
+                        break
+                    # Check keys ignoring case
+                    lower_keys = {k.lower(): v for k, v in nutrients.items()}
+                    if key in lower_keys:
+                         cal_value = lower_keys[key]
+                         break
+
+                if cal_value:
+                    # Attempt to parse the value (might be like '250 kcal', '300', etc.)
+                    parsed_cal = _parse_calories_from_string(str(cal_value))
+                    if parsed_cal is not None:
+                        scraped_data['calories'] = parsed_cal
+                        logger.info(f"Extracted calories: {parsed_cal}")
+                    else:
+                        logger.warning(f"Found calorie value '{cal_value}' but could not parse integer.")
+                else:
+                    logger.info("No 'calories' key found in scraped nutrients data.")
+            else:
+                logger.info("No nutrients data found or not in expected dictionary format.")
+        except Exception as nutr_ex:
+            logger.warning(f"Could not process nutrients data from {url}: {nutr_ex}")
 
         # Basic validation: Check if essential fields were extracted
         if not scraped_data.get('title') or not (scraped_data.get('ingredients') or scraped_data.get('instructions_text')):
