@@ -29,7 +29,7 @@ try:
     # Import the scraping function
     from src.recipe_scraping import scrape_recipe_metadata
     # Import the ingredient parsing utility
-    from src.utils import parse_ingredient_string
+    from src.utils import parse_ingredient_string, process_doc_intel_analyze_result
     # Import AI functions when implemented
     from src.ai_services import analyze_recipe_document
 except ImportError as e:
@@ -209,11 +209,8 @@ elif import_method == "Document/Image Analysis (Document Intelligence)":
         "Prebuilt Read (OCR Only)": "prebuilt-read",
         "Prebuilt Layout": "prebuilt-layout",
         "Prebuilt General Document": "prebuilt-document",
-        "Custom Recipe Model": os.getenv("DOC_INTEL_CUSTOM_MODEL_ID", "your-custom-model-id")
+        "Cucina Facile": "cucina_facile_v1"
     }
-    if available_models["Custom Recipe Model"] == "your-custom-model-id":
-        del available_models["Custom Recipe Model"]
-        logger.warning("Custom DI Model ID not configured.")
     model_display_names = list(available_models.keys())
     default_index = model_display_names.index("Custom Recipe Model") if "Custom Recipe Model" in model_display_names else 0
     selected_model_display_name = st.selectbox(
@@ -228,25 +225,36 @@ elif import_method == "Document/Image Analysis (Document Intelligence)":
         processed_ok = False
         with st.spinner(f"Analyzing document(s) with model '{selected_model_display_name}'..."):
             # --- TODO: Implement Document Analysis Logic ---
-            # 1. Combine multiple images into PDF if needed (using Pillow/img2pdf)
-            #    combined_doc_bytes = combine_images_to_pdf(uploaded_files)
-            # 2. Call ai_services.analyze_recipe_document(doc_intel_client, selected_model_id, combined_doc_bytes) -> returns AnalyzeResult
-            # 3. Process AnalyzeResult to get title, ingredients_text, instructions_text
-            #    analysis_output = process_analyze_result(analyze_result, selected_model_id) # You need to write this parser
-            # 4. Prepare extracted_data dictionary
-            #    extracted_data = {
-            #        'title': analysis_output.get('title'),
-            #        'ingredients_text': analysis_output.get('ingredients_block'),
-            #        'instructions_text': analysis_output.get('instructions_block'),
-            #        'source_type': 'Digitalizzata',
-            #        'image_url': None # No image URL from document analysis
-            #        # Try to extract yields/time too if using custom model
-            #    }
-            # 5. Process and store if data extracted
-            #    if extracted_data.get('title'): # Basic check
-            #        processed_ok = process_and_store_extracted_data(extracted_data)
-            #    else:
-            #        st.error("Could not extract necessary fields from the document.")
+            # 1. Obtain the bytes of the uploaded file(s)
+            # For now, only pass the first file's bytes (extend to combine if needed)
+            if not uploaded_files:
+                st.warning("Please upload at least one file before analyzing.")
+                combined_doc_bytes = None
+            else:
+                # If multiple files, you could combine them into a PDF (not implemented here)
+                # For now, just use the first file
+                uploaded_file = uploaded_files[0]
+                uploaded_file.seek(0)
+                combined_doc_bytes = uploaded_file.read()
+                logger.info(f"Read {len(combined_doc_bytes)} bytes from uploaded file '{uploaded_file.name}'.")
+                # 2. Call ai_services.analyze_recipe_document(doc_intel_client, selected_model_id, combined_doc_bytes) -> returns AnalyzeResult
+                result = analyze_recipe_document(doc_intel_client, selected_model_id, combined_doc_bytes)
+                # 3. Process AnalyzeResult to get title, ingredients_text, instructions_text
+                analysis_output = process_doc_intel_analyze_result(result, selected_model_id)
+                # 4. Prepare extracted_data dictionary
+                extracted_data = {
+                    'title': analysis_output.get('title'),
+                    'ingredients_text': analysis_output.get('ingredients_block'),
+                    'instructions_text': analysis_output.get('instructions_block'),
+                    'source_type': 'Digitalizzata',
+                    'image_url': None # No image URL from document analysis
+                    # Try to extract yields/time too if using custom model
+                }
+                # 5. Process and store if data extracted
+                if extracted_data.get('title'): # Basic check
+                    processed_ok = process_and_store_extracted_data(extracted_data)
+                else:
+                    st.error("Could not extract necessary fields from the document.")
 
             st.success(f"Placeholder: Successfully analyzed {len(uploaded_files)} file(s). Data ready for review (Implement logic).") # Placeholder
             # --- End TODO ---

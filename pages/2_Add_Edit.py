@@ -200,7 +200,7 @@ if submitted:
     num_people_val = int(num_people) if num_people is not None else None
     difficulty_val = difficulty if difficulty else None
     season_val = season if season else None
-    portata_category_val = porta_category_manual if porta_category_manual else None
+    portata_category_val = portata_category_manual if portata_category_manual else None
     total_time_val = int(total_time) if total_time is not None else None
     final_image_url = st.session_state.get('imported_image_url') # Get potentially imported URL
     # TODO: Add logic for handling NEW photo_upload widget value

@@ -51,8 +51,8 @@ def analyze_recipe_document(
         doc_stream = io.BytesIO(document_stream) if isinstance(document_stream, bytes) else document_stream
 
         poller = doc_intel_client.begin_analyze_document(
-            model_id=model_id,
-            analyze_request=doc_stream, # Pass the stream/bytes directly
+            model_id,
+            doc_stream, # Pass the stream/bytes directly
             content_type="application/octet-stream" # Assume bytes/stream input
             # Use content_type="application/pdf", "image/jpeg", etc. if passing specific types
         )

@@ -305,3 +305,33 @@ if __name__ == '__main__':
     for item in test_yields:
         servings = parse_servings(item)
         print(f"Original: '{item}' -> Parsed Servings: {servings}")
+
+
+def process_doc_intel_analyze_result(
+    doc_intel_analyze_result: Dict[str, Union[str, Dict[str, str]]],
+    selected_model_id: str
+) -> Dict[str, Optional[Union[str, None]]]:
+    """
+    Process the document intelligence analyze result to extract the text and language.
+    """
+    if not doc_intel_analyze_result:
+        return None, None
+
+    if selected_model_id.startswith("cucina_facile"):
+        pass
+    else:
+        # Extract text and language from the result
+        text = doc_intel_analyze_result.get("text", None)
+        language = doc_intel_analyze_result.get("language", None)
+
+        # If the result is a dictionary, extract the text and language from it
+        if isinstance(doc_intel_analyze_result, dict):
+            text = doc_intel_analyze_result.get("text", text)
+            language = doc_intel_analyze_result.get("language", language)
+        
+        result = {
+            "text": text,
+            "language": language
+        }
+
+    return result
