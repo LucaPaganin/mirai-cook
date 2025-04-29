@@ -22,7 +22,7 @@ try:
     from src.models import Recipe, IngredientItem, IngredientEntity, sanitize_for_id
     from src.persistence import (
        save_recipe, get_ingredient_entity,
-       find_similar_ingredient_display_names, upsert_ingredient_entity
+       upsert_ingredient_entity
     )
     from src.azure_clients import (
         SESSION_STATE_RECIPE_CONTAINER, SESSION_STATE_INGREDIENT_CONTAINER,
@@ -39,8 +39,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
 logger = logging.getLogger(__name__)
 
 # --- Page Configuration ---
-try: st.set_page_config(page_title="Add/Edit Recipe - Mirai Cook", page_icon="✍️")
-except st.errors.StreamlitAPIException: pass
+st.set_page_config(page_title="Add/Edit Recipe - Mirai Cook", page_icon="✍️")
 
 # --- Helper Functions for UI Sections ---
 
@@ -204,7 +203,8 @@ def process_and_save_recipe(form_data: Dict[str, Any], ingredients_df: pd.DataFr
     """Processes ingredients, creates Recipe object, and saves to DB."""
     st.markdown("--- Processing Submission ---")
     # 1. Retrieve data from inputs
-    title = form_data["title"]; instructions = form_data["instructions"]; ingredients_data = ingredients_df.copy()
+    title = form_data["title"]; instructions = form_data["instructions"]
+    ingredients_data = ingredients_df.copy()
     num_people_val = int(form_data["num_people"]) if form_data["num_people"] is not None else None
     difficulty_val = form_data["difficulty"] if form_data["difficulty"] else None
     season_val = form_data["season"] if form_data["season"] else None
@@ -216,21 +216,29 @@ def process_and_save_recipe(form_data: Dict[str, Any], ingredients_df: pd.DataFr
     # TODO: Handle NEW photo_upload
 
     # 2. Validation
-    validation_ok = True; error_messages = []
-    if not title: error_messages.append("Recipe Title is required.")
-    if not instructions: error_messages.append("Recipe Instructions are required.")
+    validation_ok = True
+    error_messages = []
+    if not title: 
+        error_messages.append("Recipe Title is required.")
+    if not instructions: 
+        error_messages.append("Recipe Instructions are required.")
     ingredients_data.dropna(subset=['Ingredient Name'], inplace=True)
-    if ingredients_data.empty: error_messages.append("Add at least one valid ingredient row (with name).")
+    if ingredients_data.empty: 
+        error_messages.append("Add at least one valid ingredient row (with name).")
     # Quantity defaults to 1, no longer strictly required in validation
 
     if error_messages:
-        validation_ok = False;
+        validation_ok = False
         for msg in error_messages: st.error(msg)
         # Store current form values if validation fails (using input dict)
-        st.session_state['form_default_title'] = title; st.session_state['form_default_instructions'] = instructions
-        st.session_state['form_default_num_people'] = form_data["num_people"]; st.session_state['form_default_total_time'] = form_data["total_time"]
-        st.session_state['form_default_difficulty'] = form_data["difficulty"]; st.session_state['form_default_season'] = form_data["season"]
-        st.session_state['form_default_category'] = form_data["category"]; st.session_state['form_default_drink'] = form_data["drink_pairing"]
+        st.session_state['form_default_title'] = title
+        st.session_state['form_default_instructions'] = instructions
+        st.session_state['form_default_num_people'] = form_data["num_people"]
+        st.session_state['form_default_total_time'] = form_data["total_time"]
+        st.session_state['form_default_difficulty'] = form_data["difficulty"]
+        st.session_state['form_default_season'] = form_data["season"]
+        st.session_state['form_default_category'] = form_data["category"]
+        st.session_state['form_default_drink'] = form_data["drink_pairing"]
         st.session_state['form_default_calories'] = form_data["calories"]
 
     if validation_ok:
@@ -248,9 +256,11 @@ def process_and_save_recipe(form_data: Dict[str, Any], ingredients_df: pd.DataFr
                 # --- START: Simplified Ingredient Processing ---
                 for index, row in ingredients_data.iterrows():
                     name = row['Ingredient Name']; qty = row['Quantity']; unit = row['Unit']; notes = row['Notes']
-                    if not name or pd.isna(name): continue
+                    if not name or pd.isna(name): 
+                        continue
                     qty_processed = 1.0 if pd.isna(qty) else float(qty) # Default quantity
-                    name_lower = name.strip().lower(); confirmed_ingredient_id = None
+                    name_lower = name.strip().lower()
+                    confirmed_ingredient_id = None
 
                     if name_lower in processed_ingredient_ids:
                         confirmed_ingredient_id = processed_ingredient_ids[name_lower]

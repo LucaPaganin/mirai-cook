@@ -27,6 +27,7 @@ except ImportError as e:
 
 # Import Azure client types for type hinting
 from azure.ai.documentintelligence import DocumentIntelligenceClient
+from azure.cosmos import ContainerProxy
 from openai import AzureOpenAI
 import os # For environment variables
 
@@ -40,15 +41,18 @@ class RecipeImporter:
     """
 
     def __init__(self,
-                 doc_intel_client: Optional[DocumentIntelligenceClient],
-                 openai_client: Optional[AzureOpenAI]
+                 doc_intel_client: DocumentIntelligenceClient,
+                 openai_client: AzureOpenAI,
+                 ingredients_container: ContainerProxy,
                  # Add other clients if needed for future methods (e.g., TheMealDB client)
                  ):
         """
         Initializes the importer with necessary Azure clients.
         """
-        if not doc_intel_client: logger.warning("Document Intelligence client not provided to RecipeImporter.")
-        if not openai_client: logger.warning("OpenAI client not provided to RecipeImporter.")
+        if not doc_intel_client: 
+            logger.warning("Document Intelligence client not provided to RecipeImporter.")
+        if not openai_client: 
+            logger.warning("OpenAI client not provided to RecipeImporter.")
 
         self.doc_intel_client = doc_intel_client
         self.openai_client = openai_client
