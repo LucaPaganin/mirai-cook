@@ -62,7 +62,7 @@ SESSION_STATE_CLIENTS_INITIALIZED = 'azure_clients_initialized_status'
 
 # --- Credential Initialization (Centralized) ---
 try:
-    AZURE_CREDENTIAL = ChainedTokenCredential([ManagedIdentityCredential(), DefaultAzureCredential()])
+    AZURE_CREDENTIAL = ChainedTokenCredential(ManagedIdentityCredential(), DefaultAzureCredential())
     logger.info("Azure credential initialized using ChainedTokenCredential.")
 except Exception as e:
     logger.error(f"Failed to initialize Azure credential: {e}", exc_info=True)
@@ -79,9 +79,6 @@ def _get_key_vault_client() -> Optional[SecretClient]:
     try:
         # logger.info(f"Attempting to create SecretClient for Key Vault: {key_vault_uri}")
         kv_client = SecretClient(vault_url=key_vault_uri, credential=AZURE_CREDENTIAL)
-        # Test call removed from here, will happen in the cached function
-        # list(kv_client.list_properties_of_secrets(max_results=1))
-        # logger.info("SecretClient created successfully (connection not verified here).")
         return kv_client
     except Exception as e:
         logger.error(f"Failed creating SecretClient for '{key_vault_uri}': {e}", exc_info=True)
@@ -93,10 +90,18 @@ def _get_secrets_from_key_vault(kv_client: SecretClient, secret_names: List[str]
     # ... (implementation remains the same) ...
     retrieved_secrets: Dict[str, Optional[str]] = {name: None for name in secret_names}; logger.info(f"Retrieving secrets from Key Vault: {', '.join(secret_names)}"); retrieved_count = 0
     for secret_name in secret_names:
-        try: secret_bundle = kv_client.get_secret(secret_name); retrieved_secrets[secret_name] = secret_bundle.value; retrieved_count += 1
-        except ResourceNotFoundError: logger.warning(f"Secret '{secret_name}' not found in Key Vault '{kv_client.vault_url}'.")
-        except ClientAuthenticationError as auth_error: logger.error(f"Authentication error retrieving secret '{secret_name}': {auth_error}. Stopping.", exc_info=True); return None
-        except Exception as e: logger.error(f"Unexpected error retrieving secret '{secret_name}': {e}. Skipping.", exc_info=True)
+        try: 
+            secret_bundle = kv_client.get_secret(secret_name)
+            retrieved_secrets[secret_name] = secret_bundle.value
+            retrieved_count += 1
+        except ResourceNotFoundError: 
+            logger.warning(f"Secret '{secret_name}' not found in Key Vault '{kv_client.vault_url}'.")
+        except ClientAuthenticationError as auth_error: 
+            logger.error(f"Authentication error retrieving secret '{secret_name}': {auth_error}. Stopping.", exc_info=True)
+            return None
+        except Exception as e: 
+            logger.error(f"Unexpected error retrieving secret '{secret_name}': {e}. Skipping.", exc_info=True)
+    
     logger.info(f"Finished retrieving secrets. Got values for {retrieved_count}/{len(secret_names)} secrets.")
     return retrieved_secrets
 
@@ -118,7 +123,7 @@ def _load_all_secrets_cached() -> Optional[Dict[str, Optional[str]]]:
     # Verify connection within the cached function
     try:
         logger.debug("Verifying Key Vault connection inside cached function...")
-        list(kv_client.list_properties_of_secrets(max_results=1))
+        list(kv_client.list_properties_of_secrets())
         logger.info("Key Vault connection verified.")
     except Exception as e:
         logger.error(f"Failed to connect or list secrets in Key Vault within cached function: {e}", exc_info=True)
@@ -192,40 +197,76 @@ def _initialize_doc_intelligence_client(secrets: Dict[str, Optional[str]]) -> Op
 def _initialize_speech_config(secrets: Dict[str, Optional[str]]) -> Optional[SpeechConfig]:
     """Initializes Azure AI Speech configuration object."""
     # ... (implementation remains the same) ...
-    key = secrets.get("SpeechServiceKey"); region = secrets.get("SpeechServiceRegion")
-    if not key or not region: logger.error(f"Speech Service key ({key is not None}) or region ({region}) not found."); return None
-    try: speech_config = SpeechConfig(subscription=key, region=region); logger.info("Speech Config initialized."); return speech_config
-    except Exception as e: logger.error(f"Failed to initialize Speech Config: {e}", exc_info=True); return None
+    key = secrets.get("SpeechServiceKey")
+    region = secrets.get("SpeechServiceRegion")
+    if not key or not region:
+        logger.error(f"Speech Service key ({key is not None}) or region ({region}) not found.")
+        return None
+    try:
+        speech_config = SpeechConfig(subscription=key, region=region)
+        logger.info("Speech Config initialized.")
+        return speech_config
+    except Exception as e:
+        logger.error(f"Failed to initialize Speech Config: {e}", exc_info=True)
+        return None
 
 def _initialize_search_client(secrets: Dict[str, Optional[str]]) -> Optional[SearchClient]:
      """Initializes Azure AI Search client."""
      # ... (implementation remains the same) ...
-     endpoint = secrets.get("SearchServiceEndpoint"); key = secrets.get("SearchAdminKey"); index_name = secrets.get("SearchIndexName")
-     if not endpoint or not key or not index_name: logger.error(f"Search endpoint ({endpoint is not None}), key ({key is not None}), or index name ({index_name is not None}) not found."); return None
+     endpoint = secrets.get("SearchServiceEndpoint")
+     key = secrets.get("SearchAdminKey")
+     index_name = secrets.get("SearchIndexName")
+     if not endpoint or not key or not index_name:
+         logger.error(f"Search endpoint ({endpoint is not None}), key ({key is not None}), or index name ({index_name is not None}) not found.")
+         return None
      try:
-         credential = AzureKeyCredential(key); client = SearchClient(endpoint=endpoint, index_name=index_name, credential=credential)
-         client.get_document_count(); logger.info(f"Search Client initialized for index '{index_name}'.")
+         credential = AzureKeyCredential(key)
+         client = SearchClient(endpoint=endpoint, index_name=index_name, credential=credential)
+         client.get_document_count()
+         logger.info(f"Search Client initialized for index '{index_name}'.")
          return client
-     except Exception as e: logger.warning(f"Failed to initialize Search client for index '{index_name}': {e}", exc_info=True); return None
+     except Exception as e:
+         logger.warning(f"Failed to initialize Search client for index '{index_name}': {e}", exc_info=True)
+         return None
 
 def _initialize_blob_service_client(secrets: Dict[str, Optional[str]]) -> Optional[BlobServiceClient]:
      """Initializes Azure Blob Storage client."""
      # ... (implementation remains the same) ...
-     account_name = secrets.get("StorageAccountName"); account_key = secrets.get("StorageAccountKey"); connection_string = secrets.get("StorageConnectionString")
-     credential_to_use: Union[str, ManagedIdentityCredential, DefaultAzureCredential, None] = None; auth_method = "Unknown"
-     if connection_string: auth_method = "Connection String"
-     elif account_name and account_key: connection_string = f"DefaultEndpointsProtocol=https;AccountName={account_name};AccountKey={account_key};EndpointSuffix=core.windows.net"; auth_method = "Account Key (via constructed CS)"
-     elif account_name and AZURE_CREDENTIAL: credential_to_use = AZURE_CREDENTIAL; auth_method = "Azure AD/Managed Identity"
-     elif not account_name: logger.error("Storage account name not found."); return None
-     else: logger.error("No valid credential found for Blob Storage."); return None
+     account_name = secrets.get("StorageAccountName")
+     account_key = secrets.get("StorageAccountKey")
+     connection_string = secrets.get("StorageConnectionString")
+     credential_to_use: Union[str, ManagedIdentityCredential, DefaultAzureCredential, None] = None
+     auth_method = "Unknown"
+     if connection_string:
+         auth_method = "Connection String"
+     elif account_name and account_key:
+         connection_string = f"DefaultEndpointsProtocol=https;AccountName={account_name};AccountKey={account_key};EndpointSuffix=core.windows.net"
+         auth_method = "Account Key (via constructed CS)"
+     elif account_name and AZURE_CREDENTIAL:
+         credential_to_use = AZURE_CREDENTIAL
+         auth_method = "Azure AD/Managed Identity"
+     elif not account_name:
+         logger.error("Storage account name not found.")
+         return None
+     else:
+         logger.error("No valid credential found for Blob Storage.")
+         return None
      try:
-         account_url = f"https://{account_name}.blob.core.windows.net" if account_name else None; logger.info(f"Initializing Blob Service Client for account: {account_name} using {auth_method}")
-         if connection_string: blob_service_client = BlobServiceClient.from_connection_string(connection_string)
-         elif account_url and credential_to_use: blob_service_client = BlobServiceClient(account_url=account_url, credential=credential_to_use)
-         else: logger.error("Logic error: Could not determine Blob Storage client init method."); return None
-         blob_service_client.get_service_properties(); logger.info("Blob Service Client initialized.")
+         account_url = f"https://{account_name}.blob.core.windows.net" if account_name else None
+         logger.info(f"Initializing Blob Service Client for account: {account_name} using {auth_method}")
+         if connection_string:
+             blob_service_client = BlobServiceClient.from_connection_string(connection_string)
+         elif account_url and credential_to_use:
+             blob_service_client = BlobServiceClient(account_url=account_url, credential=credential_to_use)
+         else:
+             logger.error("Logic error: Could not determine Blob Storage client init method.")
+             return None
+         blob_service_client.get_service_properties()
+         logger.info("Blob Service Client initialized.")
          return blob_service_client
-     except Exception as e: logger.error(f"Failed to initialize Blob Service client: {e}", exc_info=True); return None
+     except Exception as e:
+         logger.error(f"Failed to initialize Blob Service client: {e}", exc_info=True)
+         return None
 
 
 # --- Main Initialization Function for Streamlit App (UPDATED) ---
@@ -245,12 +286,13 @@ def initialize_clients_in_session_state(force_reload: bool = False):
     # 1. Load Secrets using the cached function
     secrets = _load_all_secrets_cached() # This call is cached by Streamlit
 
-    if secrets is None: # Check if cached function failed (e.g., KV connection error)
+    if secrets is None:
+        # Check if cached function failed (e.g., KV connection error)
         st.error("Fatal: Failed to load secrets from Key Vault cache.")
         st.session_state[session_key] = False # Ensure flag is False
         # Clear potentially partially loaded secrets?
         if SESSION_STATE_SECRETS in st.session_state:
-             del st.session_state[SESSION_STATE_SECRETS]
+            del st.session_state[SESSION_STATE_SECRETS]
         return False
 
     # Store the potentially cached secrets in session state for easy access by other modules if needed
