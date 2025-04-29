@@ -46,8 +46,10 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
 logger = logging.getLogger(__name__)
 
 # --- Page Configuration ---
-try: st.set_page_config(page_title="Add/Edit Recipe - Mirai Cook", page_icon="✍️")
-except st.errors.StreamlitAPIException: pass
+try:
+    st.set_page_config(page_title="Add/Edit Recipe - Mirai Cook", page_icon="✍️")
+except st.errors.StreamlitAPIException:
+    pass
 
 st.title("✍️ Add / Edit Recipe")
 
