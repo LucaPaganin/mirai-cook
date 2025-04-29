@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """
 Streamlit page for manually adding or editing recipes in Mirai Cook.
-Handles pre-population of form fields including calories.
-Includes optional 'drink' pairing field and calorie input.
+Handles pre-population of form fields if data is imported from page 3.
+Removed ingredient similarity check logic during save.
+Includes placeholder for AI food group classification on new ingredients.
 """
 
 import streamlit as st
@@ -19,20 +20,23 @@ if project_root not in sys.path: sys.path.insert(0, project_root)
 
 # --- Import Application Modules ---
 try:
-    # Recipe model now includes 'drink'
+    # Recipe model now includes 'food_groups' and 'is_verified' on IngredientEntity
     from src.models import Recipe, IngredientItem, IngredientEntity, sanitize_for_id
     from src.persistence import (
        save_recipe,
        get_ingredient_entity,
-       find_similar_ingredient_display_names,
+       # find_similar_ingredient_display_names, # REMOVED
        upsert_ingredient_entity
     )
     from src.azure_clients import (
         SESSION_STATE_RECIPE_CONTAINER,
         SESSION_STATE_INGREDIENT_CONTAINER,
         SESSION_STATE_CLIENTS_INITIALIZED,
+        SESSION_STATE_OPENAI_CLIENT # Needed for food group classification
     )
     from src.utils import parse_ingredient_string, parse_servings
+    # Import the AI function for food group classification (placeholder)
+    # from src.ai_services.genai import classify_ingredient_food_group_openai
 except ImportError as e:
     st.error(f"Error importing application modules: {e}. Check PYTHONPATH.")
     st.stop()
@@ -48,10 +52,15 @@ except st.errors.StreamlitAPIException: pass
 st.title("✍️ Add / Edit Recipe")
 
 # --- Check if NECESSARY Azure Clients are Initialized ---
-required_clients = [SESSION_STATE_RECIPE_CONTAINER, SESSION_STATE_INGREDIENT_CONTAINER]
+required_clients = [
+    SESSION_STATE_RECIPE_CONTAINER,
+    SESSION_STATE_INGREDIENT_CONTAINER,
+    SESSION_STATE_OPENAI_CLIENT # Needed for food group
+]
 clients_ready = True; missing_clients = []
 for client_key in required_clients:
-    if not st.session_state.get(client_key): clients_ready = False; missing_clients.append(client_key.replace("container", "Container Client"))
+    if not st.session_state.get(client_key):
+        clients_ready = False; missing_clients.append(client_key.replace("container", "Container Client").replace("_client", " Client"))
 if not clients_ready:
     st.error(f"Error: Required Azure connections missing: {', '.join(missing_clients)}.")
     if not st.session_state.get(SESSION_STATE_CLIENTS_INITIALIZED): st.warning("Global Azure init reported issues.")
@@ -59,18 +68,22 @@ if not clients_ready:
 else:
     recipe_container = st.session_state[SESSION_STATE_RECIPE_CONTAINER]
     ingredients_container = st.session_state[SESSION_STATE_INGREDIENT_CONTAINER]
-    logger.info("Retrieved required Cosmos DB container clients.")
+    openai_client = st.session_state[SESSION_STATE_OPENAI_CLIENT]
+    # TODO: Get OpenAI model deployment name for classification from config/env
+    openai_classification_model = os.getenv("AZURE_OPENAI_CLASSIFICATION_DEPLOYMENT", "gpt-4o-mini") # Example
+    logger.info("Retrieved required Azure clients from session state.")
 
 
 # --- Initialize Session State Variables ---
 default_keys = [
     'form_default_title', 'form_default_instructions', 'form_default_num_people',
     'form_default_total_time', 'imported_image_url', 'original_source_type',
-    'original_source_url', 'confirmed_ingredient_map', 'form_default_difficulty',
-    'form_default_season', 'form_default_category', 'form_default_drink',
-    'pending_similarity_check', 'form_default_calories' # Added calories default key
+    'original_source_url', #'confirmed_ingredient_map', # REMOVED
+    'form_default_difficulty', 'form_default_season', 'form_default_category', 'form_default_drink',
+    #'pending_similarity_check', # REMOVED
+    'form_default_calories'
 ]
-default_values = ["", "", None, None, None, 'Manuale', None, {}, '', '', '', '', None, None] # Added default for calories
+default_values = ["", "", None, None, None, 'Manuale', None, {}, '', '', '', '', None, None] # Removed defaults for removed state
 for key, default_value in zip(default_keys, default_values):
     if key not in st.session_state: st.session_state[key] = default_value
 if 'manual_ingredients_df' not in st.session_state:
@@ -80,9 +93,9 @@ if 'manual_ingredients_df' not in st.session_state:
 # --- Pre-populate form if data was imported ---
 imported_data = st.session_state.get('imported_recipe_data', None)
 if imported_data:
+    # ... (Pre-population logic remains the same as before) ...
     st.success("Recipe data imported! Please review, structure ingredients if needed, and save.")
     logger.info("Pre-populating form state with imported data.")
-    # Store defaults in session state
     st.session_state['form_default_title'] = imported_data.get('title', '')
     st.session_state['form_default_instructions'] = imported_data.get('instructions_text', '')
     st.session_state['imported_image_url'] = imported_data.get('image_url')
@@ -93,21 +106,15 @@ if imported_data:
     except (ValueError, TypeError): st.session_state['form_default_total_time'] = None
     st.session_state['form_default_category'] = imported_data.get('category', '')
     st.session_state['form_default_drink'] = imported_data.get('drink', '')
-    # Pre-populate calories
     try: calories_raw = imported_data.get('calories'); st.session_state['form_default_calories'] = int(calories_raw) if calories_raw is not None else None
     except (ValueError, TypeError): st.session_state['form_default_calories'] = None; logger.warning(f"Could not convert imported calories '{calories_raw}' to integer.")
-    logger.info(f"Imported calories: '{st.session_state['form_default_calories']}'")
-
-    # Pre-populate ingredients editor
     parsed_ingredients_list = imported_data.get('parsed_ingredients', [])
     initial_ingredients_df_data = []
     if parsed_ingredients_list:
         for parsed_item in parsed_ingredients_list: initial_ingredients_df_data.append({"Quantity": parsed_item.get("quantity"), "Unit": parsed_item.get("unit", ""), "Ingredient Name": parsed_item.get("name", parsed_item.get("original","")), "Notes": parsed_item.get("notes", "")})
     st.session_state['manual_ingredients_df'] = pd.DataFrame(initial_ingredients_df_data)
-    # Clear the temporary import data key
     st.session_state['imported_recipe_data'] = None
     logger.info("Cleared imported_recipe_data from session state.")
-    # NO RERUN NEEDED
 
 # --- Retrieve default values from session state for rendering ---
 current_default_title = st.session_state.get('form_default_title', "")
@@ -119,7 +126,7 @@ current_default_difficulty = st.session_state.get('form_default_difficulty', '')
 current_default_season = st.session_state.get('form_default_season', '')
 current_default_category = st.session_state.get('form_default_category', '')
 current_default_drink = st.session_state.get('form_default_drink', '')
-current_default_calories = st.session_state.get('form_default_calories') # Get default calories
+current_default_calories = st.session_state.get('form_default_calories')
 
 # --- Display Imported Image (if available) ---
 if current_imported_image_url:
@@ -127,36 +134,10 @@ if current_imported_image_url:
     st.image(current_imported_image_url, caption="Image from imported URL/Source", use_container_width=True)
     st.markdown("---")
 
-# --- Handle Pending Similarity Check (HITL Prompt) ---
-pending_check = st.session_state.get('pending_similarity_check')
-if pending_check:
-    # ... (Similarity check UI logic remains the same) ...
-    st.warning(f"Potential duplicate found for: **{pending_check['new_name']}**")
-    st.write("This ingredient is very similar to the following existing ingredient(s):")
-    options = {}
-    for entity in pending_check['similar_entities']: option_text = f"Use existing: '{entity.displayName}' (ID: {entity.id})"; options[option_text] = entity.id
-    create_new_option = f"Create new entry for: '{pending_check['new_name']}' (ID: {pending_check['candidate_id']})"; options[create_new_option] = pending_check['candidate_id']
-    col_prompt, col_confirm = st.columns([3,1])
-    with col_prompt: user_choice_display = st.radio("Select an action:", options=list(options.keys()), key=f"similarity_choice_{pending_check['candidate_id']}", index=0)
-    with col_confirm:
-        st.write("") ; st.write("")
-        if st.button("Confirm Ingredient Choice", key=f"confirm_similarity_{pending_check['candidate_id']}"):
-            chosen_id = options[user_choice_display]
-            st.session_state['confirmed_ingredient_map'][pending_check['new_name'].strip().lower()] = chosen_id
-            if chosen_id == pending_check['candidate_id']:
-                 existing = get_ingredient_entity(ingredients_container, chosen_id)
-                 if not existing:
-                     new_entity_data = IngredientEntity(id=chosen_id, displayName=pending_check['new_name'].strip())
-                     saved = upsert_ingredient_entity(ingredients_container, new_entity_data)
-                     if not saved: st.error(f"Failed to create master entry for new ingredient: '{pending_check['new_name']}'.")
-                     else: logger.info(f"Created new IngredientEntity: {chosen_id}")
-                 else: logger.info(f"User chose create new, but ID '{chosen_id}' exists. Using existing.")
-            st.session_state['pending_similarity_check'] = None
-            st.success(f"Choice confirmed for '{pending_check['new_name']}'. Please click 'Save Recipe' again.")
-            st.rerun()
+# --- REMOVED Similarity Check HITL Prompt Section ---
 
 # --- Recipe Input Form ---
-form_disabled = st.session_state.get('pending_similarity_check') is not None
+# Form is no longer disabled
 with st.form("recipe_form", clear_on_submit=True):
     st.subheader("Recipe Details")
     recipe_title = st.text_input("Recipe Title*", value=current_default_title, key="recipe_title_input", disabled=form_disabled)
@@ -196,23 +177,23 @@ with st.form("recipe_form", clear_on_submit=True):
             "Unit": st.column_config.TextColumn("Unit"), # Optional
             "Ingredient Name": st.column_config.TextColumn("Ingredient*", required=True),
             "Notes": st.column_config.TextColumn("Notes")
-        }, use_container_width=True, disabled=form_disabled
+        }, 
+        use_container_width=True
     )
     st.caption("* Ingredient Name is required.")
     st.divider()
-    submitted = st.form_submit_button("💾 Save Recipe", disabled=form_disabled) # Disable button if check pending
+    submitted = st.form_submit_button("💾 Save Recipe")
 
 # --- Form Submission Logic ---
-if submitted and not form_disabled: # Process only if submitted and not disabled
-    # Update session state with the final edited ingredients from the editor
+if submitted:
     st.session_state['manual_ingredients_df'] = edited_ingredients_df
     st.markdown("--- Processing Submission ---")
 
-    # 1. Retrieve data (including calories)
+    # 1. Retrieve data
     title = recipe_title; instructions = recipe_instructions; ingredients_data = edited_ingredients_df.copy()
     num_people_val = int(num_people) if num_people is not None else None; difficulty_val = difficulty if difficulty else None; season_val = season if season else None
     category_val = category.strip() if category else None; total_time_val = int(total_time) if total_time is not None else None; drink_val = drink_pairing.strip() if drink_pairing else None
-    calories_val = int(calories) if calories is not None else None # Get calories
+    calories_val = int(calories) if calories is not None else None
     final_image_url = st.session_state.get('imported_image_url')
     # TODO: Handle NEW photo_upload
 
@@ -220,9 +201,10 @@ if submitted and not form_disabled: # Process only if submitted and not disabled
     validation_ok = True; error_messages = []
     if not title: error_messages.append("Recipe Title is required.")
     if not instructions: error_messages.append("Recipe Instructions are required.")
-    ingredients_data.dropna(subset=['Ingredient Name'], inplace=True) # Drop rows if name is missing first
-    if ingredients_data.empty: error_messages.append("Please add at least one valid ingredient row (with a name).")
-    # Quantity defaults to 1, so no longer strictly required in validation here
+    ingredients_data.dropna(subset=['Ingredient Name'], inplace=True)
+    if ingredients_data.empty: 
+        error_messages.append("Add at least one valid ingredient row (with name).")
+    # Quantity defaults to 1, no longer strictly required in validation
 
     if error_messages:
         validation_ok = False;
@@ -236,62 +218,80 @@ if submitted and not form_disabled: # Process only if submitted and not disabled
         st.success("Input validation passed. Processing ingredients...")
         logger.info(f"Form submitted for recipe: {title}")
 
-        # 3. Process Ingredients (Integrate Similarity Check & Default Quantity)
+        # 3. Process Ingredients (Simplified: Exact Match or Create New with AI Food Group)
         try:
             ingredient_items_list: List[IngredientItem] = []
-            processed_ingredient_ids = st.session_state.get('confirmed_ingredient_map', {})
+            # Removed processed_ingredient_ids cache as HITL is removed
             all_ingredients_processed_successfully = True
-            needs_similarity_check = None
+            recipe_food_groups = set() # To collect unique food groups for the recipe
 
-            with st.spinner("Processing ingredients..."):
-                # --- START: Ingredient Processing Logic ---
+            with st.spinner("Processing ingredients and classifying food groups..."):
+                # --- START: Simplified Ingredient Processing ---
                 for index, row in ingredients_data.iterrows():
                     name = row['Ingredient Name']; qty = row['Quantity']; unit = row['Unit']; notes = row['Notes']
                     if not name or pd.isna(name): continue
+                    qty_processed = 1.0 if pd.isna(qty) else float(qty) # Default quantity
 
-                    # --- Default Quantity to 1.0 if missing/NaN ---
-                    qty_processed = 1.0 if pd.isna(qty) else float(qty)
-                    # --- END Default ---
+                    ingredient_id = None # Reset for each row
+                    ingredient_entity = None # Store the found/created entity
+                    ingredient_id_candidate = sanitize_for_id(name.strip())
 
-                    name_lower = name.strip().lower(); confirmed_ingredient_id = None
-                    if name_lower in processed_ingredient_ids: confirmed_ingredient_id = processed_ingredient_ids[name_lower]
+                    # Check exact match
+                    existing_entity = get_ingredient_entity(ingredients_container, ingredient_id_candidate)
+
+                    if existing_entity:
+                        ingredient_id = existing_entity.id
+                        ingredient_entity = existing_entity # Use existing entity
+                        logger.info(f"Exact match found for '{name}'. Using ID: {ingredient_id}")
                     else:
-                        ingredient_id_candidate = sanitize_for_id(name)
-                        existing_entity = get_ingredient_entity(ingredients_container, ingredient_id_candidate)
-                        if existing_entity: confirmed_ingredient_id = existing_entity.id; processed_ingredient_ids[name_lower] = confirmed_ingredient_id
-                        else:
-                            similar_entities = find_similar_ingredient_display_names(ingredients_container, name.strip())
-                            if similar_entities:
-                                needs_similarity_check = {"new_name": name.strip(), "candidate_id": ingredient_id_candidate, "similar_entities": similar_entities}
-                                st.session_state['pending_similarity_check'] = needs_similarity_check
-                                all_ingredients_processed_successfully = False; break
+                        # Create new IngredientEntity
+                        logger.info(f"No exact match for '{name}'. Creating new IngredientEntity with ID '{ingredient_id_candidate}'.")
+                        # --- Call AI to classify food_group ---
+                        predicted_food_group = None
+                        try:
+                            # Assuming classify_ingredient_food_group_openai exists in genai.py
+                            from src.ai_services.genai import classify_ingredient_food_group_openai
+                            if openai_client:
+                                predicted_food_group = classify_ingredient_food_group_openai(openai_client, name.strip(), openai_classification_model)
+                                logger.info(f"OpenAI suggested food group '{predicted_food_group}' for '{name}'")
                             else:
-                                logger.info(f"No similar ingredients found. Creating new entry for '{name}' with ID '{ingredient_id_candidate}'.")
-                                new_entity_data = IngredientEntity(id=ingredient_id_candidate, displayName=name.strip())
-                                saved_entity = upsert_ingredient_entity(ingredients_container, new_entity_data)
-                                if saved_entity: confirmed_ingredient_id = saved_entity.id; processed_ingredient_ids[name_lower] = confirmed_ingredient_id
-                                else: st.error(f"Failed to create master entry for '{name}'."); all_ingredients_processed_successfully = False; break
-                    if confirmed_ingredient_id:
+                                logger.warning("OpenAI client not available for food group classification.")
+                        except Exception as ai_error:
+                            logger.error(f"Error classifying food group for '{name}': {ai_error}")
+                        # ---------------------------------------
+                        new_entity_data = IngredientEntity(
+                            id=ingredient_id_candidate,
+                            displayName=name.strip(),
+                            food_group=predicted_food_group, # Assign classified group
+                            is_verified=False # Mark as unverified
+                        )
+                        saved_entity = upsert_ingredient_entity(ingredients_container, new_entity_data)
+                        if saved_entity:
+                            ingredient_id = saved_entity.id
+                            ingredient_entity = saved_entity # Use the newly saved entity
+                            logger.info(f"Created new IngredientEntity: {ingredient_id}")
+                        else:
+                            st.error(f"Failed to create master entry for ingredient: '{name}'.")
+                            all_ingredients_processed_successfully = False; break
+
+                    if ingredient_id and ingredient_entity:
+                        # Add food group to recipe's set
+                        if ingredient_entity.food_group:
+                            recipe_food_groups.add(ingredient_entity.food_group)
+                        # Create IngredientItem
                         ingredient_item = IngredientItem(
-                            ingredient_id=confirmed_ingredient_id,
-                            quantity=qty_processed, # Use the processed quantity
+                            ingredient_id=ingredient_id,
+                            quantity=qty_processed,
                             unit=str(unit).strip() if pd.notna(unit) else None,
                             notes=str(notes).strip() if pd.notna(notes) else None
                         )
                         ingredient_items_list.append(ingredient_item)
-                    elif not needs_similarity_check:
-                         st.error(f"Failed to determine ID for ingredient: '{name}'."); all_ingredients_processed_successfully = False; break
-                # --- END: Ingredient Processing Logic ---
+                    else: # Should not happen if creation logic is correct
+                        st.error(f"Failed to obtain valid ID or Entity for ingredient: '{name}'.")
+                        all_ingredients_processed_successfully = False; break
+                # --- END: Simplified Ingredient Processing ---
 
-            if st.session_state.get('pending_similarity_check'):
-                 st.warning("Please resolve the ingredient similarity check above before saving.")
-                 # Store current form values
-                 st.session_state['form_default_title'] = title; st.session_state['form_default_instructions'] = instructions; st.session_state['form_default_num_people'] = num_people
-                 st.session_state['form_default_total_time'] = total_time; st.session_state['form_default_difficulty'] = difficulty; st.session_state['form_default_season'] = season
-                 st.session_state['form_default_category'] = category; st.session_state['form_default_drink'] = drink_pairing; st.session_state['form_default_calories'] = calories
-                 st.rerun() # Rerun to display the prompt
-
-            elif not all_ingredients_processed_successfully:
+            if not all_ingredients_processed_successfully:
                  st.error("Recipe saving aborted due to ingredient processing errors.")
             else:
                 # --- Proceed to Save Recipe ---
@@ -308,9 +308,10 @@ if submitted and not form_disabled: # Process only if submitted and not disabled
                         title=title.strip(), instructions=instructions.strip(), ingredients=ingredient_items_list,
                         category=confirmed_category, num_people=num_people_val, difficulty=difficulty_val,
                         season=season_val, total_time_minutes=total_time_val, drink=drink_val,
-                        total_calories_estimated=calories_val, # Save calories
+                        total_calories_estimated=calories_val,
                         source_type=source_type_final, source_url=source_url_final, image_url=final_image_url,
-                        created_at=current_time_utc, updated_at=current_time_utc
+                        created_at=current_time_utc, updated_at=current_time_utc,
+                        food_groups=sorted(list(recipe_food_groups)) # Assign collected food groups
                     )
 
                     # 6. Save Recipe
@@ -323,7 +324,8 @@ if submitted and not form_disabled: # Process only if submitted and not disabled
                         st.success(f"Recipe '{saved_recipe.title}' saved successfully!")
                         # Clear state
                         st.session_state['manual_ingredients_df'] = pd.DataFrame([], columns=["Quantity", "Unit", "Ingredient Name", "Notes"])
-                        st.session_state['confirmed_ingredient_map'] = {}; st.session_state['imported_image_url'] = None; st.session_state['form_default_title'] = ""; st.session_state['form_default_instructions'] = ""
+                        # st.session_state['confirmed_ingredient_map'] = {} # No longer needed
+                        st.session_state['imported_image_url'] = None; st.session_state['form_default_title'] = ""; st.session_state['form_default_instructions'] = ""
                         st.session_state['original_source_type'] = 'Manuale'; st.session_state['original_source_url'] = None
                         st.session_state['form_default_num_people'] = None; st.session_state['form_default_total_time'] = None
                         st.session_state['form_default_difficulty'] = ''; st.session_state['form_default_season'] = ''; st.session_state['form_default_category'] = ''; st.session_state['form_default_drink'] = ''; st.session_state['form_default_calories'] = None

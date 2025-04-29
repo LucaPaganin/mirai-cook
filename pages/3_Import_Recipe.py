@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Streamlit page for importing recipes into Mirai Cook.
-Integrates ingredient parsing using utils for URL scraping and
-attempts structured extraction via AI Language NER after Doc Intel analysis.
+Streamlit page for importing recipes into Mirai Cook using the RecipeImporter class.
 """
 
 import streamlit as st
@@ -14,7 +12,6 @@ import pandas as pd # To display parsed ingredients preview
 import io # For combining images
 
 # --- Setup Project Root Path ---
-# Allows importing from the 'src' module
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
@@ -24,24 +21,16 @@ try:
     from src.azure_clients import (
         SESSION_STATE_DOC_INTEL_CLIENT,
         SESSION_STATE_OPENAI_CLIENT,
-        SESSION_STATE_LANGUAGE_CLIENT, # Added Language client key
+        SESSION_STATE_INGREDIENT_CONTAINER, # Needed by Importer
         SESSION_STATE_CLIENTS_INITIALIZED
     )
-    # Import the scraping function
-    from src.recipe_scraping import scrape_recipe_metadata
-    # Import the ingredient parsing utility
-    from src.utils import parse_ingredient_string
-    # Import AI service functions
-    from src.ai_services import (
-        analyze_recipe_document,
-        process_doc_intel_analyze_result, # Assumes this NO LONGER calls extract_ingredients
-        extract_recipe_ingredients # Will be called directly here
-        # extract_recipe_from_url_ai # For AI fallback later
-    )
-    # Import image combination utility if implemented
-    # from src.utils import combine_images_to_pdf
+    # Import the new Importer class
+    from src.importers import RecipeImporter
+    # Import AI service functions used by Importer (though not called directly here)
+    from src.ai_services.doc_intelligence import analyze_recipe_document, process_doc_intel_analyze_result
+    from src.ai_services.genai import parse_ingredient_block_openai, parse_ingredient_list_openai
 except ImportError as e:
-    st.error(f"Error importing application modules: {e}. Check PYTHONPATH and module locations.")
+    st.error(f"Error importing application modules: {e}. Check PYTHONPATH.")
     st.stop()
 
 # --- Configure Logging ---
@@ -58,103 +47,49 @@ st.title("📥 Import Recipe")
 st.markdown("Add recipes by providing a URL or uploading a document/image for analysis.")
 
 # --- Check if NECESSARY Azure Clients are Initialized ---
-# Now requires Language client as well for ingredient extraction fallback/processing
+# Importer needs DI, OpenAI, and Ingredients Container
 required_clients = [
     SESSION_STATE_DOC_INTEL_CLIENT,
     SESSION_STATE_OPENAI_CLIENT,
-    SESSION_STATE_LANGUAGE_CLIENT # Added requirement
+    SESSION_STATE_INGREDIENT_CONTAINER # Added dependency
 ]
 clients_ready = True
 missing_clients = []
 for client_key in required_clients:
     if not st.session_state.get(client_key):
         clients_ready = False
-        missing_clients.append(client_key.replace("_client", " Client").replace("_config", " Config"))
+        missing_clients.append(client_key.replace("container", "Container Client").replace("_client", " Client"))
 
+importer = None # Initialize importer variable
 if not clients_ready:
     st.error(f"Error: Required Azure connections missing: {', '.join(missing_clients)}. Please ensure Azure services were initialized correctly.")
     logger.error(f"Import Recipe page stopped. Missing clients in session state: {', '.join(missing_clients)}")
     if not st.session_state.get(SESSION_STATE_CLIENTS_INITIALIZED):
          st.warning("Note: Global Azure client initialization reported issues.")
-    st.stop()
+    st.stop() # Stop if essential clients for importer are missing
 else:
     # Retrieve necessary clients from session state
     doc_intel_client = st.session_state[SESSION_STATE_DOC_INTEL_CLIENT]
     openai_client = st.session_state[SESSION_STATE_OPENAI_CLIENT]
-    language_client = st.session_state[SESSION_STATE_LANGUAGE_CLIENT] # Retrieve Language client
+    ingredients_container = st.session_state[SESSION_STATE_INGREDIENT_CONTAINER]
     logger.info("Successfully retrieved required Azure AI clients for Import page.")
+    # --- Initialize Importer ---
+    try:
+        importer = RecipeImporter(
+            doc_intel_client=doc_intel_client,
+            openai_client=openai_client,
+            ingredients_container=ingredients_container # Pass the container client
+        )
+        logger.info("RecipeImporter initialized.")
+    except Exception as e:
+        st.error(f"Failed to initialize RecipeImporter: {e}")
+        logger.error(f"Error initializing RecipeImporter: {e}", exc_info=True)
+        st.stop() # Stop if importer cannot be initialized
 
 
 # --- Initialize session state for imported data ---
 if 'imported_recipe_data' not in st.session_state:
      st.session_state['imported_recipe_data'] = None
-
-# --- Helper Function to Parse and Store ---
-def process_and_store_extracted_data(extracted_data: Dict[str, Any]):
-    """
-    Processes ingredient data (either raw text/list or pre-extracted dicts)
-    and stores structured data in session state.
-    """
-    if not extracted_data:
-        logger.error("process_and_store_extracted_data called with empty data.")
-        return False
-
-    parsed_ingredients_list = []
-    # Check if 'parsed_ingredients' key already exists (from direct NER call)
-    # OR if 'ingredients' contains dicts (updated NER output format)
-    ingredients_input = extracted_data.get('ingredients')
-    is_pre_parsed = False
-    if isinstance(ingredients_input, list) and ingredients_input:
-         # Check if the first item looks like the NER output structure
-         first_item = ingredients_input[0]
-         if isinstance(first_item, dict) and "ingredient" in first_item and "quantity" in first_item:
-             is_pre_parsed = True
-
-    if is_pre_parsed:
-        logger.info(f"Using {len(ingredients_input)} pre-structured ingredients from NER.")
-        # Map keys from NER output to the format expected by parse_ingredient_string output
-        for item in ingredients_input:
-            qty_info = item.get("quantity") # This is expected to be {"value": num, "unit": str} or None
-            parsed_ingredients_list.append({
-                "quantity": qty_info.get("value") if qty_info else None,
-                "unit": qty_info.get("unit") if qty_info else None,
-                "name": item.get("ingredient"),
-                "notes": None, # NER doesn't typically extract notes this way
-                # Reconstruct an approximate original line for reference
-                "original": f"{item.get('ingredient')} {qty_info.get('value', '')} {qty_info.get('unit', '')}".strip() if qty_info else item.get('ingredient')
-            })
-    else:
-        # Fallback to parsing raw strings if 'parsed_ingredients' is not present
-        # or if 'ingredients' is a list of strings (from scraper)
-        raw_ingredients_list = []
-        if isinstance(ingredients_input, list): # List of strings from scraper
-             raw_ingredients_list = ingredients_input
-             if 'ingredients_text' not in extracted_data or not extracted_data['ingredients_text']:
-                 extracted_data['ingredients_text'] = "\n".join(raw_ingredients_list)
-        # Use ingredients_text if ingredients wasn't a list or was empty
-        elif isinstance(extracted_data.get('ingredients_text'), str):
-             raw_ingredients_list = extracted_data['ingredients_text'].strip().split('\n')
-             # Ensure ingredients_text key exists if we parsed from it
-             if 'ingredients_text' not in extracted_data:
-                 extracted_data['ingredients_text'] = "\n".join(raw_ingredients_list)
-
-        if raw_ingredients_list:
-            logger.info(f"Parsing {len(raw_ingredients_list)} raw ingredient lines using utils.parse_ingredient_string...")
-            for line in raw_ingredients_list:
-                if line.strip():
-                    parsed = parse_ingredient_string(line.strip())
-                    parsed_ingredients_list.append(parsed)
-            logger.info(f"Generated {len(parsed_ingredients_list)} parsed ingredient structures via utils.")
-        else:
-            logger.warning("No raw ingredient data found to parse.")
-
-    # Add/Replace the parsed list in the dictionary using the consistent key
-    extracted_data['parsed_ingredients'] = parsed_ingredients_list
-    # Store the complete data in session state
-    st.session_state['imported_recipe_data'] = extracted_data
-    logger.debug(f"Stored imported_recipe_data in session state: {st.session_state['imported_recipe_data']}")
-    return True
-
 
 # --- Import Method Selection ---
 import_method = st.selectbox(
@@ -173,68 +108,49 @@ if import_method == "URL":
     submit_url = st.button("🔗 Import from URL", key="submit_url")
 
     if submit_url and recipe_url:
-        logger.info(f"URL Import requested for: {recipe_url}")
-        processed_ok = False
-        with st.spinner(f"Attempting to import recipe from {recipe_url}..."):
-            # 1. Call the scraping function
-            scraped_data = scrape_recipe_metadata(recipe_url)
-            final_extracted_data = None
+        if importer: # Check if importer was initialized
+            logger.info(f"URL Import requested for: {recipe_url}")
+            processed_ok = False
+            with st.spinner(f"Importing and parsing recipe from {recipe_url}..."):
+                # --- Call Importer Method ---
+                extracted_data = importer.import_from_url(recipe_url)
 
-            if scraped_data:
-                logger.info("Scraping successful using recipe-scrapers.")
-                # Prepare data structure - 'ingredients' key holds list of strings here
-                final_extracted_data = {
-                    "title": scraped_data.get("title"),
-                    "ingredients": scraped_data.get("ingredients", []), # Pass raw list
-                    "instructions_text": scraped_data.get("instructions_text"),
-                    "image_url": scraped_data.get("image"),
-                    "source_url": recipe_url,
-                    "source_type": "Imported (URL Scraper)",
-                    "yields": scraped_data.get("yields"),
-                    "total_time": scraped_data.get("total_time"),
-                    "category": scraped_data.get("category"),
-                    "difficulty": scraped_data.get("difficulty"),
-                    "calories": scraped_data.get("calories") # Pass scraped calories
-                }
-            else:
-                logger.warning(f"recipe-scrapers failed for {recipe_url}. Attempting AI fallback.")
-                # --- TODO: Implement AI Fallback Logic ---
-                # Remember to try and extract title, ingredients_text, instructions_text, yields, total_time, category, difficulty, calories
-                st.warning("Automatic scraping failed. AI fallback not yet implemented.")
-
-            # 2. Process (parse ingredients using utils) and Store
-            if final_extracted_data:
-                # This will call parse_ingredient_string on the raw list/text
-                processed_ok = process_and_store_extracted_data(final_extracted_data)
-            else:
-                 st.error(f"Could not extract recipe data from {recipe_url}.")
-
-            # 3. Show Preview and Guide User if successful
-            if processed_ok:
-                imported_result = st.session_state.get('imported_recipe_data', {})
-                st.success("Recipe data extracted and parsed!")
-                st.markdown("**Extracted Data Preview:**")
-                st.text(f"Title: {imported_result.get('title', 'N/A')}")
-                # Display other fields
-                st.text(f"Yields: {imported_result.get('yields', 'N/A')}")
-                st.text(f"Time: {imported_result.get('total_time', 'N/A')}")
-                st.text(f"Category: {imported_result.get('category', 'N/A')}")
-                st.text(f"Difficulty: {imported_result.get('difficulty', 'N/A')}")
-                st.text(f"Calories (approx): {imported_result.get('calories', 'N/A')}")
-                img_url = imported_result.get('image_url')
-                if img_url: st.image(img_url, caption="Image found", width=200)
-
-                st.text("Parsed Ingredients (Attempted via Utils):")
-                parsed_ingredients_preview = imported_result.get('parsed_ingredients', [])
-                if parsed_ingredients_preview:
-                    preview_df = pd.DataFrame(parsed_ingredients_preview)[["quantity", "unit", "name", "notes"]]
-                    st.dataframe(preview_df, use_container_width=True)
+                if extracted_data:
+                    # Store the structured data returned by the importer
+                    st.session_state['imported_recipe_data'] = extracted_data
+                    processed_ok = True
                 else:
-                    st.text("Could not parse ingredients from text.")
+                     st.error(f"Could not import or process recipe data from {recipe_url}.")
+                     processed_ok = False
 
-                st.markdown("---")
-                st.info("✅ Data is ready! Please go to the **Add/Edit Recipe** page to review and save.")
-            # else: Error messages handled within the logic
+                # --- Show Preview and Guide User if successful ---
+                if processed_ok:
+                    imported_result = st.session_state.get('imported_recipe_data', {})
+                    st.success("Recipe data extracted and parsed!")
+                    st.markdown("**Extracted Data Preview:**")
+                    st.text(f"Title: {imported_result.get('title', 'N/A')}")
+                    # Display other fields...
+                    st.text(f"Yields: {imported_result.get('yields', 'N/A')}")
+                    st.text(f"Time: {imported_result.get('total_time', 'N/A')}")
+                    st.text(f"Calories (approx): {imported_result.get('calories', 'N/A')}")
+                    img_url = imported_result.get('image_url')
+                    if img_url:
+                        st.image(img_url, caption="Image found", width=200)
+
+                    st.text("Parsed Ingredients (Attempted):")
+                    parsed_ingredients_preview = imported_result.get('parsed_ingredients', [])
+                    if parsed_ingredients_preview:
+                        # Display as a DataFrame for clarity
+                        preview_df = pd.DataFrame(parsed_ingredients_preview)[["quantity", "unit", "name", "notes"]]
+                        st.dataframe(preview_df, use_container_width=True)
+                    else:
+                        st.text("Could not parse ingredients.")
+                    st.markdown("---")
+                    st.info("✅ Data is ready! Please go to the **Add/Edit Recipe** page to review and save.")
+                # else: Error messages handled within the logic above
+        else:
+            st.error("Recipe Importer could not be initialized. Please check configuration.")
+
 
     elif submit_url and not recipe_url:
         st.warning("Please enter a URL.")
@@ -256,8 +172,10 @@ elif import_method == "Document/Image Analysis (Document Intelligence)":
         "Cucina Facile V1": "cucina_facile_v1" # Your custom model example
     }
     custom_model_env_id = os.getenv("DOC_INTEL_CUSTOM_MODEL_ID")
-    if custom_model_env_id: available_models["Custom Recipe Model (Env)"] = custom_model_env_id
-    else: logger.warning("Optional: Set DOC_INTEL_CUSTOM_MODEL_ID env var.")
+    if custom_model_env_id:
+        available_models["Custom Recipe Model (Env)"] = custom_model_env_id
+    else:
+        logger.warning("Optional: Set DOC_INTEL_CUSTOM_MODEL_ID env var.")
 
     model_display_names = list(available_models.keys())
     default_model_key = "Custom Recipe Model (Env)" if custom_model_env_id else ("Cucina Facile V1" if "Cucina Facile V1" in available_models else model_display_names[0])
@@ -270,107 +188,60 @@ elif import_method == "Document/Image Analysis (Document Intelligence)":
     submit_doc_intel = st.button("📄 Analyze Document/Image(s)", key="submit_doc_intel")
 
     if submit_doc_intel and uploaded_files:
-        logger.info(f"Document Intelligence analysis requested for {len(uploaded_files)} file(s) using model: {selected_model_id}")
-        processed_ok = False
-        with st.spinner(f"Analyzing document(s) with model '{selected_model_display_name}'..."):
-            # --- Document Analysis Logic ---
-            combined_doc_bytes: Optional[bytes] = None
-            try:
-                # 1. Combine images to PDF if needed (Placeholder)
-                # TODO: Implement image combination logic using src.utils.combine_images_to_pdf
-                if len(uploaded_files) > 1 and not uploaded_files[0].name.lower().endswith(".pdf"):
-                    st.warning("Multi-image combination not yet implemented. Analyzing only the first image.")
-                    uploaded_files[0].seek(0); combined_doc_bytes = uploaded_files[0].read()
-                elif uploaded_files:
-                    uploaded_files[0].seek(0); combined_doc_bytes = uploaded_files[0].read()
+        if importer: # Check if importer was initialized
+            logger.info(f"DI analysis requested for {len(uploaded_files)} file(s) using model: {selected_model_id}")
+            processed_ok = False
+            with st.spinner(f"Analyzing document(s) with model '{selected_model_display_name}'..."):
+                combined_doc_bytes: Optional[bytes] = None
+                try:
+                    # --- TODO: Implement image combination logic ---
+                    if len(uploaded_files) > 1 and not uploaded_files[0].name.lower().endswith(".pdf"):
+                        st.warning("Multi-image combination not implemented. Analyzing first image only.")
+                    if uploaded_files:
+                        uploaded_files[0].seek(0)
+                        combined_doc_bytes = uploaded_files[0].read()
 
-                if combined_doc_bytes:
-                    # 2. Call ai_services.analyze_recipe_document
-                    analyze_result = analyze_recipe_document(doc_intel_client, selected_model_id, combined_doc_bytes)
-
-                    if analyze_result and analyze_result.documents:
-                        # 3. Process AnalyzeResult (assumes process_doc_intel_analyze_result handles parsing fields)
-                        # This function should return the raw ingredient text block if found.
-                        analysis_output = process_doc_intel_analyze_result(
-                            analyze_result.documents[0].fields, # Pass the fields dictionary
-                            selected_model_id
-                            # No longer pass language_client here
-                        )
-
-                        # 4. Prepare extracted_data dictionary
-                        if analysis_output and analysis_output.get('title'):
-                             extracted_data = {
-                                 'title': analysis_output.get('title'),
-                                 'ingredients_text': analysis_output.get('ingredients'), # Raw text block
-                                 'instructions_text': analysis_output.get('instructions'),
-                                 'total_time': analysis_output.get('total_time'),
-                                 'yields': analysis_output.get('yields'),
-                                 'difficulty': analysis_output.get('difficulty'),
-                                 'source_type': 'Digitalizzata',
-                                 'image_url': None,
-                                 'drink': analysis_output.get('drink'),
-                                 'category': analysis_output.get('category'),
-                                 'calories': analysis_output.get('calories')
-                             }
-
-                             # --- Call AI Language NER Separately ---
-                             ingredients_text_block = extracted_data.get('ingredients_text')
-                             if ingredients_text_block:
-                                 logger.info("Attempting ingredient extraction using AI Language NER...")
-                                 with st.spinner("Extracting structured ingredients..."):
-                                     parsed_ingredients_ner = extract_recipe_ingredients(language_client, ingredients_text_block)
-                                 if parsed_ingredients_ner:
-                                     # Replace the raw text block with the structured list from NER
-                                     extracted_data['ingredients'] = parsed_ingredients_ner
-                                     logger.info(f"NER extracted {len(parsed_ingredients_ner)} structures.")
-                                 else:
-                                     logger.warning("AI Language NER did not return structured ingredients. Will rely on utils parsing.")
-                                     # Ensure 'ingredients' key holds the text block for fallback parsing
-                                     extracted_data['ingredients'] = ingredients_text_block
-                             else:
-                                 logger.warning("No ingredient text block from DI for NER.")
-                                 extracted_data['ingredients'] = None # Ensure it's None or empty list/string
-
-                             # 5. Process and store (will use structured 'ingredients' if NER succeeded, else parse text)
-                             processed_ok = process_and_store_extracted_data(extracted_data)
+                    if combined_doc_bytes:
+                        # --- Call Importer Method ---
+                        extracted_data = importer.import_from_document(combined_doc_bytes, selected_model_id)
+                        if extracted_data:
+                            # Store the structured data directly
+                            st.session_state['imported_recipe_data'] = extracted_data
+                            processed_ok = True
                         else:
-                            st.error("Could not extract necessary fields (like title) from the document analysis result.")
-                            logger.error(f"Failed to process DI result fields: {analyze_result.documents[0].fields if analyze_result.documents else 'No documents'}")
+                            st.error("Failed to import or process recipe data from the document.")
                     else:
-                         st.error("Document analysis failed or returned no results.")
-                         logger.error(f"analyze_recipe_document returned: {analyze_result}")
-                else:
-                    st.error("Failed to read uploaded file(s).")
+                        st.error("Failed to read uploaded file(s).")
+                except Exception as e:
+                    st.error(f"Error during document analysis/import: {e}")
+                    logger.error(f"Error in DI import block: {e}", exc_info=True)
 
-            except Exception as e:
-                 st.error(f"An error occurred during document analysis: {e}")
-                 logger.error(f"Error in DI analysis block: {e}", exc_info=True)
-            # --- End Document Analysis Logic ---
+                # --- Show Preview and Guide User ---
+                if processed_ok:
+                    imported_result = st.session_state.get('imported_recipe_data', {})
+                    st.success("Document analyzed and parsed!")
+                    st.markdown("**Extracted Data Preview:**")
+                    st.text(f"Title: {imported_result.get('title', 'N/A')}")
+                    # Display other fields...
+                    st.text(f"Category: {imported_result.get('category', 'N/A')}")
+                    st.text(f"Difficulty: {imported_result.get('difficulty', 'N/A')}")
+                    st.text(f"Time: {imported_result.get('total_time', 'N/A')}")
+                    st.text(f"Yields: {imported_result.get('yields', 'N/A')}")
+                    st.text(f"Drink: {imported_result.get('drink', 'N/A')}")
+                    st.text(f"Calories (approx): {imported_result.get('calories', 'N/A')}")
 
-            # --- Show Preview and Guide User if successful ---
-            if processed_ok:
-                imported_result = st.session_state.get('imported_recipe_data', {})
-                st.success("Document analyzed and parsed!")
-                st.markdown("**Extracted Data Preview:**")
-                st.text(f"Title: {imported_result.get('title', 'N/A')}")
-                # Display other extracted fields
-                st.text(f"Category: {imported_result.get('category', 'N/A')}")
-                st.text(f"Difficulty: {imported_result.get('difficulty', 'N/A')}")
-                st.text(f"Time: {imported_result.get('total_time', 'N/A')}")
-                st.text(f"Yields: {imported_result.get('yields', 'N/A')}")
-                st.text(f"Drink: {imported_result.get('drink', 'N/A')}")
-                st.text(f"Calories (approx): {imported_result.get('calories', 'N/A')}")
-
-                st.text("Parsed Ingredients (Attempted via NER/Utils):")
-                parsed_ingredients_preview = imported_result.get('parsed_ingredients', [])
-                if parsed_ingredients_preview:
-                    preview_df = pd.DataFrame(parsed_ingredients_preview)[["quantity", "unit", "name", "notes"]]
-                    st.dataframe(preview_df, use_container_width=True)
-                else:
-                    st.text("Could not parse ingredients from text.")
-                st.markdown("---")
-                st.info("✅ Data is ready! Please go to the **Add/Edit Recipe** page to review and save.")
-            # else: Error messages handled within the logic
+                    st.text("Parsed Ingredients (Attempted):")
+                    parsed_ingredients_preview = imported_result.get('parsed_ingredients', [])
+                    if parsed_ingredients_preview:
+                        preview_df = pd.DataFrame(parsed_ingredients_preview)[["quantity", "unit", "name", "notes"]]
+                        st.dataframe(preview_df, use_container_width=True)
+                    else:
+                        st.text("Could not parse ingredients.")
+                    st.markdown("---")
+                    st.info("✅ Data is ready! Please go to the **Add/Edit Recipe** page to review and save.")
+                # else: Error messages handled within the logic above
+        else:
+            st.error("Recipe Importer could not be initialized. Please check configuration.")
 
     elif submit_doc_intel and not uploaded_files:
         st.warning("Please upload at least one file.")

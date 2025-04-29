@@ -1,89 +1,19 @@
 # -*- coding: utf-8 -*-
 """
-Functions for interacting with Azure OpenAI service.
+Functions for interacting with Azure OpenAI service (Generative AI).
+Includes functions for recipe generation, embeddings, and ingredient parsing.
+Updated parse_ingredient_block_openai prompt for continuous text.
 """
 
 import logging
+import json # For parsing OpenAI response
 from typing import Optional, List, Dict, Any
-from openai import AzureOpenAI # Using the 'openai' package configured for Azure
+from openai import AzureOpenAI, OpenAIError # Using the 'openai' package configured for Azure
 from azure.core.exceptions import HttpResponseError
 
 logger = logging.getLogger(__name__)
 
 # --- OpenAI Service ---
-
-SYSTEM_PROMPT_INGREDIENTS_SPLITTER = """
-You are an expert culinary assistant specialized in parsing recipe ingredients. Your task is to process a list of ingredients provided in Italian. For each ingredient string in the input list, you must identify and extract the following four pieces of information:
-
-1.  **name:** The core name of the ingredient (e.g., 'Farina 00', 'Uova', 'Sale', 'Prezzemolo').
-2.  **quantity:** The amount specified (e.g., 250, 2, 1, 0.5).
-3.  **unit:** The unit of measurement (e.g., 'g', 'ml', 'cucchiaio', 'spicchio', 'pizzico').
-4.  **notes:** Any additional descriptive information, preparation instructions, or characteristics (e.g., 'tritato', 'a temperatura ambiente', 'q.b.', 'grandi').
-
-**Input:**
-You will receive a list of strings, where each string represents one ingredient line from an Italian recipe.
-
-**Output Format:**
-For *each* ingredient string provided in the input, you MUST output exactly one line following this precise format:
-`name: <ingredient_name>; quantity: <ingredient_quantity>; unit: <ingredient_unit>; notes: <ingredient_notes>`
-
-Replace the placeholders `<...>` with the extracted values.
-
-**Specific Formatting and Interpretation Rules:**
-
-* **Quantity (`quantity`):**
-    * Always return numerical values for quantity. Use digits (e.g., 1, 2, 100).
-    * Convert fractions (e.g., "1/2", "1 e 1/2", "1,5") to their decimal equivalents (e.g., 0.5, 1.5, 1.5).
-    * Interpret Italian number words (e.g., "un", "uno", "una", "due") as digits (e.g., 1, 2).
-    * If the quantity is vague (e.g., "qualche", "un po' di"), set `quantity` to `N/A` and capture the vagueness in `notes`.
-    * If no quantity is explicitly mentioned, use `N/A`.
-* **Unit (`unit`):**
-    * Extract standard units (g, kg, ml, l, cucchiaio/i, tazza/e, bicchiere/i, etto/i, etc.).
-    * Treat terms indicating a piece or non-standard measure (e.g., "pizzico", "foglia/e", "rametto/i", "mazzetto/i", "cespo", "lattina/e", "spicchio/i") as the `unit`.
-    * If no unit is mentioned, use `N/A`.
-* **Notes (`notes`):**
-    * Include any descriptive adjectives related to preparation, state, or characteristics (e.g., "tritato", "grattugiato", "ammorbidito", "setacciata", "fresco", "secco", "grandi", "medie", "a temperatura ambiente", "freddo di frigo", "tagliato grosso", "dorate"). Combine multiple notes with a comma if necessary.
-    * Include vague quantity descriptions here if `quantity` is set to `N/A` (e.g., "qualche", "un po' di").
-    * Include terms like "q.b." (quanto basta) or equivalent expressions (e.g., "scarsi") here.
-    * Include parenthetical information (e.g., "(scorza e succo)", "(14,5 oz)") here, removing the parentheses.
-    * If no notes are present, use `N/A`.
-* **Name (`name`):**
-    * Extract the core noun phrase identifying the ingredient.
-    * Do NOT include preparation steps, states, or descriptive adjectives (like "tritato", "grattugiato", "fresco", "grandi") in the name; these belong in `notes`. (e.g., for "Parmigiano grattugiato", name is "Parmigiano", notes is "grattugiato". For "Uova grandi", name is "Uova", notes is "grandi").
-    * For compound ingredients like "Sale e pepe" or "Sale, pepe" listed as one item, keep them together in the name (e.g., "Sale e pepe").
-
-**Handling Missing Information:**
-* The `name` should always be extracted.
-* If the `quantity`, `unit`, or `notes` cannot be determined based on the rules above, use the value `N/A` for that specific field in the output. Do not omit the field label.
-
-**Example:**
-
-*Input List:*
-```
-[
-  "250 g Farina 00",
-  "2 Uova grandi (a temp. ambiente)",
-  "Sale q.b.",
-  "Parmigiano grattugiato",
-  "Un pizzico di noce moscata",
-  "1/2 bicchiere Vino bianco secco"
-]
-```
-
-*Expected Output:*
-```
-name: Farina 00; quantity: 250; unit: g; notes: N/A
-name: Uova; quantity: 2; unit: N/A; notes: grandi, a temp. ambiente
-name: Sale; quantity: N/A; unit: N/A; notes: q.b.
-name: Parmigiano; quantity: N/A; unit: N/A; notes: grattugiato
-name: Noce moscata; quantity: N/A; unit: pizzico; notes: N/A
-name: Vino bianco; quantity: 0.5; unit: bicchiere; notes: secco
-```
-
-Now, process the following list of ingredients:
-[Insert the list of ingredients you want to process here]
-
-"""
 
 def generate_recipe_from_prompt(
     openai_client: AzureOpenAI,
@@ -131,8 +61,11 @@ def generate_recipe_from_prompt(
             logger.warning("OpenAI response did not contain any choices.")
             return None
 
+    except OpenAIError as e:
+        logger.error(f"OpenAI API error during recipe generation: {e}", exc_info=True)
+        return None
     except Exception as e:
-        logger.error(f"Error during OpenAI recipe generation: {e}", exc_info=True)
+        logger.error(f"Unexpected error during OpenAI recipe generation: {e}", exc_info=True)
         return None
 
 def get_text_embedding(
@@ -169,36 +102,259 @@ def get_text_embedding(
         else:
             logger.warning("OpenAI embedding response did not contain data.")
             return None
+    except OpenAIError as e:
+        logger.error(f"OpenAI API error during text embedding: {e}", exc_info=True)
+        return None
     except Exception as e:
-        logger.error(f"Error during OpenAI text embedding: {e}", exc_info=True)
+        logger.error(f"Unexpected error during OpenAI text embedding: {e}", exc_info=True)
         return None
 
+# --- OpenAI Ingredient Parsing Functions ---
 
+def parse_ingredient_list_openai(
+    openai_client: AzureOpenAI,
+    ingredient_lines: List[str],
+    model_deployment_name: str, # e.g., "gpt-4o-mini" deployment name
+    max_tokens: int = 500, # Adjust as needed per expected output size
+    temperature: float = 0.1 # Lower temp for more deterministic JSON output
+) -> Optional[List[Dict[str, Any]]]:
+    """
+    Parses a list of ingredient strings into structured data using Azure OpenAI.
 
-def parse_openai_response(response):
+    Args:
+        openai_client: Initialized AzureOpenAI client.
+        ingredient_lines: A list of strings, each representing one ingredient line.
+        model_deployment_name: The name of the deployed GPT model to use.
+        max_tokens: Max tokens for the generated JSON response.
+        temperature: Controls randomness (lower is better for JSON).
+
+    Returns:
+        A list of dictionaries, each representing a parsed ingredient with keys
+        'name', 'quantity', 'unit', 'notes', 'original'. Returns None on failure.
     """
-    Parses the OpenAI response to extract the relevant data.
+    if not openai_client or not ingredient_lines or not model_deployment_name:
+        logger.error("parse_ingredient_list_openai: Missing required arguments.")
+        return None
+
+    # Combine lines into a single string for the prompt, separated by newlines
+    ingredients_text_block = "\n".join(ingredient_lines)
+    logger.info(f"Parsing ingredient list ({len(ingredient_lines)} lines) using OpenAI model '{model_deployment_name}'...")
+
+    system_prompt = """
+        You are an expert recipe ingredient parser. Analyze the provided list of ingredient lines.
+        For each line, extract the quantity, unit of measure, ingredient name, and any preparation notes.
+        Return the results as a JSON list of objects. Each object must have the following keys:
+        - "name": string (the main ingredient name)
+        - "quantity": float or null (the numeric quantity, use null if not specified like 'q.b.')
+        - "unit": string or null (the unit of measure, e.g., "g", "ml", "cup", "tsp", "piece", "qb", use null if no unit)
+        - "notes": string or null (any preparation notes like "chopped", "sifted", "circa", "optional")
+        - "original": string (the original input line)
+
+        If a value is not found, use null for quantity and unit, and null or an empty string for notes.
+        Ensure the output is ONLY the valid JSON list, starting with '[' and ending with ']'.
     """
-    if response.choices:
-        extracted_data = response.choices[0].message.content
-        result = []
-        for line in extracted_data.splitlines():
-            if line.strip() and "name:" in line:
-                parsed = {}
+    user_prompt = f"Parse the following ingredient list:\n---\n{ingredients_text_block}\n---\nJSON output:"
+
+    try:
+        response = openai_client.chat.completions.create(
+            model=model_deployment_name,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            max_tokens=max_tokens,
+            temperature=temperature,
+            response_format={"type": "json_object"}, # Request JSON output if model supports it
+            n=1
+        )
+
+        if response.choices:
+            content = response.choices[0].message.content
+            logger.debug(f"OpenAI raw response content: {content}")
+            if content:
                 try:
-                    entries = line.split("; ")
-                    name, quantity, unit, notes = [e.split(": ")[1] for e in entries]
-                    parsed["name"] = name.strip()
-                    parsed["unit"] = unit.strip()
-                    parsed["notes"] = notes.strip()
-                    try:
-                        parsed["quantity"] = float(quantity.strip())
-                    except ValueError:
-                        parsed["quantity"] = quantity.strip()
-                    result.append(parsed)
-                except Exception as e:
-                    print(f"Error parsing line: {line}, {e}")
-                    continue
-        return result
-    else:
+                    # The response might be a JSON object containing the list, e.g. {"ingredients": [...] }
+                    # Or it might be the list directly. Try parsing common structures.
+                    parsed_json = json.loads(content)
+                    parsed_list = None
+                    # Check if the root is a list
+                    if isinstance(parsed_json, list):
+                        parsed_list = parsed_json
+                    # Check if there's a common key like 'ingredients' holding the list
+                    elif isinstance(parsed_json, dict) and isinstance(parsed_json.get('ingredients'), list):
+                         parsed_list = parsed_json.get('ingredients')
+                    elif isinstance(parsed_json, dict) and isinstance(parsed_json.get('parsed_ingredients'), list):
+                         parsed_list = parsed_json.get('parsed_ingredients')
+                    else:
+                         logger.warning("JSON response from OpenAI was not a list or expected dict structure.")
+                         # Attempt to find a list within the dict as a fallback
+                         found_list = None
+                         if isinstance(parsed_json, dict):
+                             for value in parsed_json.values():
+                                 if isinstance(value, list):
+                                     found_list = value
+                                     break
+                         if found_list:
+                             logger.warning("Found a list under an unexpected key, using it.")
+                             parsed_list = found_list
+                         else:
+                             parsed_list = None
+
+                    if parsed_list is not None:
+                         logger.info(f"Successfully parsed {len(parsed_list)} ingredients from OpenAI JSON response (list input).")
+                         # Validate structure minimally
+                         validated_list = []
+                         for item in parsed_list:
+                             if isinstance(item, dict):
+                                 validated_list.append({
+                                     "name": item.get("name"),
+                                     "quantity": item.get("quantity"), # Already float or null
+                                     "unit": item.get("unit"),
+                                     "notes": item.get("notes"),
+                                     "original": item.get("original", "") # Try to get original if provided
+                                 })
+                             else:
+                                 logger.warning(f"Skipping invalid item in parsed list: {item}")
+                         return validated_list
+                    else:
+                        return None # Failed to extract list from JSON
+
+                except json.JSONDecodeError as json_err:
+                    logger.error(f"Failed to parse JSON response from OpenAI: {json_err}")
+                    logger.error(f"Raw content was: {content}")
+                    return None
+            else:
+                logger.warning("OpenAI response content was empty.")
+                return None
+        else:
+            logger.warning("OpenAI response did not contain any choices.")
+            return None
+
+    except OpenAIError as e:
+        logger.error(f"OpenAI API error during ingredient list parsing: {e}", exc_info=True)
         return None
+    except Exception as e:
+        logger.error(f"Unexpected error during OpenAI ingredient list parsing: {e}", exc_info=True)
+        return None
+
+
+def parse_ingredient_block_openai(
+    openai_client: AzureOpenAI,
+    ingredient_text_block: str,
+    model_deployment_name: str,
+    max_tokens: int = 500,
+    temperature: float = 0.1
+) -> Optional[List[Dict[str, Any]]]:
+    """
+    Parses a single block of text containing multiple ingredient lines
+    (potentially without clear newlines) into structured data using Azure OpenAI.
+
+    Args:
+        openai_client: Initialized AzureOpenAI client.
+        ingredient_text_block: A single string potentially containing multiple ingredients.
+        model_deployment_name: The name of the deployed GPT model to use.
+        max_tokens: Max tokens for the generated JSON response.
+        temperature: Controls randomness (lower is better for JSON).
+
+    Returns:
+        A list of dictionaries, each representing a parsed ingredient with keys
+        'name', 'quantity', 'unit', 'notes', 'original'. Returns None on failure.
+    """
+    if not openai_client or not ingredient_text_block or not model_deployment_name:
+        logger.error("parse_ingredient_block_openai: Missing required arguments.")
+        return None
+
+    logger.info(f"Parsing ingredient block using OpenAI model '{model_deployment_name}'...")
+    logger.debug(f"Input block: '{ingredient_text_block[:200]}...'") # Log start of block
+
+    # System Prompt specific for text block input
+    system_prompt = """
+        You are an expert recipe ingredient parser. Analyze the provided text block which contains multiple ingredients, potentially concatenated without clear line breaks.
+        Identify each distinct ingredient mentioned. For each ingredient, extract its quantity, unit of measure, name, and any preparation notes.
+        Ingredients might be separated by commas, spaces, or context. Be flexible.
+        Return the results as a JSON list of objects. Each object must have the following keys:
+        - "name": string (the main ingredient name, be specific, e.g., "Farina 00", "Parmigiano Reggiano DOP")
+        - "quantity": float or null (numeric quantity, use null if not specified like 'q.b.')
+        - "unit": string or null (unit of measure, e.g., "g", "ml", "cup", "tsp", "piece", "qb", use null if no unit)
+        - "notes": string or null (preparation notes like "chopped", "sifted", "circa", "optional")
+        - "original": string (the part of the original text corresponding to this ingredient, if identifiable)
+
+        If a value is not found, use null for quantity and unit, and null or an empty string for notes.
+        Ensure the output is ONLY the valid JSON list, starting with '[' and ending with ']'.
+        Example Input: "Farina 00, 100 g Burro 50g (ammorbidito) 2 Uova grandi Sale q.b."
+        Example Output:
+        [
+        {"name": "Farina 00", "quantity": 100.0, "unit": "g", "notes": null, "original": "Farina 00, 100 g"},
+        {"name": "Burro", "quantity": 50.0, "unit": "g", "notes": "ammorbidito", "original": "Burro 50g (ammorbidito)"},
+        {"name": "Uova", "quantity": 2.0, "unit": null, "notes": "grandi", "original": "2 Uova grandi"},
+        {"name": "Sale", "quantity": null, "unit": "qb", "notes": null, "original": "Sale q.b."}
+        ]
+    """
+    user_prompt = f"Parse the following ingredient block:\n---\n{ingredient_text_block}\n---\nJSON output:"
+
+    try:
+        response = openai_client.chat.completions.create(
+            model=model_deployment_name,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            max_tokens=max_tokens,
+            temperature=temperature,
+            response_format={"type": "json_object"}, # Request JSON output
+            n=1
+        )
+        # Response Parsing Logic (same as list parser)
+        if response.choices:
+            content = response.choices[0].message.content
+            logger.debug(f"OpenAI raw response content for block: {content}")
+            if content:
+                try:
+                    parsed_json = json.loads(content)
+                    parsed_list = None
+                    if isinstance(parsed_json, list): parsed_list = parsed_json
+                    elif isinstance(parsed_json, dict): # Check common keys
+                        if isinstance(parsed_json.get('ingredients'), list): 
+                            parsed_list = parsed_json.get('ingredients')
+                        elif isinstance(parsed_json.get('parsed_ingredients'), list): 
+                            parsed_list = parsed_json.get('parsed_ingredients')
+                        else: # Fallback: find first list in dict values
+                            for value in parsed_json.values():
+                                if isinstance(value, list): parsed_list = value; break
+                    if parsed_list is not None:
+                        logger.info(f"Successfully parsed {len(parsed_list)} ingredients from OpenAI JSON response (block input).")
+                        validated_list = [
+                            {
+                                "name": item.get("name"), 
+                                "quantity": item.get("quantity"), 
+                                "unit": item.get("unit"), 
+                                "notes": item.get("notes"), 
+                                "original": item.get("original", "")
+                            } 
+                            for item in parsed_list if isinstance(item, dict)
+                        ]
+                        return validated_list
+                    else: 
+                        logger.warning("JSON response from OpenAI was not a list or expected dict structure."); return None
+                except json.JSONDecodeError as json_err: 
+                    logger.error(f"Failed to parse JSON response: {json_err}\nRaw content: {content}"); return None
+            else: 
+                logger.warning("OpenAI response content was empty."); return None
+        else: 
+            logger.warning("OpenAI response did not contain choices."); return None
+    except OpenAIError as e: 
+        logger.error(f"OpenAI API error during ingredient block parsing: {e}", exc_info=True); return None
+    except Exception as e: 
+        logger.error(f"Unexpected error during OpenAI ingredient block parsing: {e}", exc_info=True); return None
+
+
+# --- TODO: Add function for URL import AI fallback ---
+# def extract_recipe_from_url_ai(openai_client: AzureOpenAI, url: str) -> Optional[Dict[str, Any]]:
+#     """ Extracts recipe details from URL content using OpenAI as fallback. """
+#     pass
+
+# --- TODO: Add function for Food Group Classification ---
+# def classify_ingredient_food_group_openai(openai_client: AzureOpenAI, ingredient_name: str, model_deployment_name: str) -> Optional[str]:
+#     """ Classifies an ingredient name into a food group using OpenAI. """
+#     pass
+
