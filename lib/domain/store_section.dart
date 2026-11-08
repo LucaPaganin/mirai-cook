@@ -4,10 +4,7 @@ enum StoreSection { produce, meatFish, dairy, pantry, frozen, other }
 /// Assigns a store section to a normalized ingredient name (SHOP-14), with
 /// user overrides taking precedence (SHOP-15).
 class SectionResolver {
-  SectionResolver({
-    this.overrides = const {},
-    this.seed = defaultSectionSeed,
-  });
+  SectionResolver({this.overrides = const {}, this.seed = defaultSectionSeed});
 
   final Map<String, StoreSection> overrides;
   final Map<String, StoreSection> seed;
@@ -23,7 +20,8 @@ class SectionResolver {
 
     String? best;
     for (final key in seed.keys) {
-      if (name.startsWith('$key ') && (best == null || key.length > best.length)) {
+      if (name.startsWith('$key ') &&
+          (best == null || key.length > best.length)) {
         best = key;
       }
     }

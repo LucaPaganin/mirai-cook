@@ -45,7 +45,7 @@ class CalendarDate implements Comparable<CalendarDate> {
 /// A Monday-to-Sunday week (PLAN-14).
 class Week {
   Week.containing(CalendarDate date)
-      : monday = date.addDays(-(date.weekday - DateTime.monday));
+    : monday = date.addDays(-(date.weekday - DateTime.monday));
 
   final CalendarDate monday;
 

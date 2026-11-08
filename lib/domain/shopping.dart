@@ -69,7 +69,9 @@ class ShoppingAggregator {
             () => ShoppingEntry(
               key: key,
               name: resolveAlias(
-                  normalizeName(rawName ?? ing.original), aliases),
+                normalizeName(rawName ?? ing.original),
+                aliases,
+              ),
               label: ing.original,
             ),
           );
@@ -103,7 +105,11 @@ class ShoppingAggregator {
 }
 
 class ManualItem {
-  const ManualItem({required this.id, required this.text, this.checked = false});
+  const ManualItem({
+    required this.id,
+    required this.text,
+    this.checked = false,
+  });
 
   final int id;
   final String text;

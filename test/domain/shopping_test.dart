@@ -35,24 +35,30 @@ void main() {
   const aggregator = ShoppingAggregator();
 
   // Covers: SHOP-1, SHOP-2
-  test('collects and scales ingredients by item servings / recipe servings',
-      () {
-    final e = aggregator.aggregate([PlannedRecipe(pasta, 2)]);
-    expect(byName(e, 'spaghetti').amount, const Amount(160, 'g'));
-    expect(byName(e, 'aglio').amount, const Amount(1, 'spicchio'));
-  });
+  test(
+    'collects and scales ingredients by item servings / recipe servings',
+    () {
+      final e = aggregator.aggregate([PlannedRecipe(pasta, 2)]);
+      expect(byName(e, 'spaghetti').amount, const Amount(160, 'g'));
+      expect(byName(e, 'aglio').amount, const Amount(1, 'spicchio'));
+    },
+  );
 
   // Covers: SHOP-2
   test('the same recipe planned twice adds up', () {
-    final e = aggregator
-        .aggregate([PlannedRecipe(pasta, 1), PlannedRecipe(pasta, 3)]);
+    final e = aggregator.aggregate([
+      PlannedRecipe(pasta, 1),
+      PlannedRecipe(pasta, 3),
+    ]);
     expect(byName(e, 'spaghetti').amount, const Amount(320, 'g'));
   });
 
   // Covers: SHOP-3, SHOP-10, SHOP-11
   test('merges same normalized name and convertible units', () {
-    final e = aggregator
-        .aggregate([PlannedRecipe(cake, 8), PlannedRecipe(bread, 2)]);
+    final e = aggregator.aggregate([
+      PlannedRecipe(cake, 8),
+      PlannedRecipe(bread, 2),
+    ]);
     expect(byName(e, 'farina 00').amount, const Amount(1.5, 'kg'));
     expect(byName(e, 'uova').amount, const Amount(6, null));
     // 200 ml + 1 cucchiaio (15 ml)
@@ -73,11 +79,15 @@ void main() {
 
   // Covers: SHOP-4
   test('lines without quantity are listed as original, not merged', () {
-    final e = aggregator
-        .aggregate([PlannedRecipe(pasta, 4), PlannedRecipe(bread, 2)]);
+    final e = aggregator.aggregate([
+      PlannedRecipe(pasta, 4),
+      PlannedRecipe(bread, 2),
+    ]);
     final unquantified = e.where((x) => x.amount == null).toList();
-    expect(unquantified.map((x) => x.label),
-        unorderedEquals(['Sale q.b.', 'un pizzico di sale']));
+    expect(
+      unquantified.map((x) => x.label),
+      unorderedEquals(['Sale q.b.', 'un pizzico di sale']),
+    );
   });
 
   // Covers: SHOP-12
@@ -114,8 +124,10 @@ void main() {
         checks: const {},
       );
       expect(rows.map((r) => r.label), contains('Detersivo'));
-      expect(rows.where((r) => r.manualId == 1).single.section,
-          StoreSection.other);
+      expect(
+        rows.where((r) => r.manualId == 1).single.section,
+        StoreSection.other,
+      );
     });
 
     // Covers: SHOP-6, SHOP-7
@@ -132,8 +144,10 @@ void main() {
 
     // Covers: SHOP-8
     test('a checked item whose quantity grew is unchecked', () {
-      final more = aggregator
-          .aggregate([PlannedRecipe(cake, 8), PlannedRecipe(bread, 2)]);
+      final more = aggregator.aggregate([
+        PlannedRecipe(cake, 8),
+        PlannedRecipe(bread, 2),
+      ]);
       final rows = builder.build(
         entries: more,
         manualItems: const [],

@@ -57,14 +57,22 @@ class Recipe {
     List<String>? steps,
     String? sourceUrl,
     List<int>? thumbnail,
-  }) =>
-      Recipe(
-        id: id ?? this.id,
-        title: title ?? this.title,
-        servings: servings ?? this.servings,
-        ingredients: ingredients ?? this.ingredients,
-        steps: steps ?? this.steps,
-        sourceUrl: sourceUrl ?? this.sourceUrl,
-        thumbnail: thumbnail ?? this.thumbnail,
-      );
+  }) => Recipe(
+    id: id ?? this.id,
+    title: title ?? this.title,
+    servings: servings ?? this.servings,
+    ingredients: ingredients ?? this.ingredients,
+    steps: steps ?? this.steps,
+    sourceUrl: sourceUrl ?? this.sourceUrl,
+    thumbnail: thumbnail ?? this.thumbnail,
+  );
+}
+
+/// Lightweight recipe data for lists.
+class RecipeSummary {
+  const RecipeSummary({required this.id, required this.title, this.thumbnail});
+
+  final int id;
+  final String title;
+  final List<int>? thumbnail;
 }

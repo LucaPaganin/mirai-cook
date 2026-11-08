@@ -10,8 +10,11 @@ void main() {
     for (final (input, qty, unit, name) in cases) {
       test('$group: "$input"', () {
         final r = parser.parse(input);
-        expect(r.quantity, qty == null ? isNull : closeTo(qty, 1e-9),
-            reason: 'quantity');
+        expect(
+          r.quantity,
+          qty == null ? isNull : closeTo(qty, 1e-9),
+          reason: 'quantity',
+        );
         expect(r.unit, unit, reason: 'unit');
         expect(r.name, name, reason: 'name');
       });

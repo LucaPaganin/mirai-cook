@@ -17,8 +17,13 @@ class IngredientParser {
   const IngredientParser();
 
   static const _fractions = <String, double>{
-    '½': 1 / 2, '¼': 1 / 4, '¾': 3 / 4, '⅓': 1 / 3, '⅔': 2 / 3,
-    '⅛': 1 / 8, '⅕': 1 / 5,
+    '½': 1 / 2,
+    '¼': 1 / 4,
+    '¾': 3 / 4,
+    '⅓': 1 / 3,
+    '⅔': 2 / 3,
+    '⅛': 1 / 8,
+    '⅕': 1 / 5,
   };
   static const _fracChars = '½¼¾⅓⅔⅛⅕';
 
@@ -26,18 +31,23 @@ class IngredientParser {
   // of a flour name, not a number).
   static const _num = r'(?:0|[1-9]\d*)(?:[.,]\d+)?(?!\d)';
   // 1½ | 1 1/2 | 1/2 | ½ | 1,5
-  static const _single = '(?:\\d+\\s*[$_fracChars]|\\d+\\s+\\d+/\\d+|'
+  static const _single =
+      '(?:\\d+\\s*[$_fracChars]|\\d+\\s+\\d+/\\d+|'
       '\\d+/\\d+|[$_fracChars]|$_num)';
   static final _qty = '$_single(?:\\s*[-–]\\s*$_single)?';
 
   static final _leadingQty = RegExp('^($_qty)');
-  static final _leadingWordOne =
-      RegExp(r"^(?:uno|una|un)(?:\s+|')", caseSensitive: false);
+  static final _leadingWordOne = RegExp(
+    r"^(?:uno|una|un)(?:\s+|')",
+    caseSensitive: false,
+  );
   static final _unitToken = RegExp(r'^\s*([a-zA-Z]+\.?)(?![a-zA-Z])');
-  static final _leadingUnitThenQty =
-      RegExp('^([a-zA-Z]+\\.?)\\s+($_qty)(?=\\s|\$)');
-  static final _trailing =
-      RegExp('^(.*\\S)\\s+($_qty)\\s*([a-zA-Z]+\\.?)?\\s*\$');
+  static final _leadingUnitThenQty = RegExp(
+    '^([a-zA-Z]+\\.?)\\s+($_qty)(?=\\s|\$)',
+  );
+  static final _trailing = RegExp(
+    '^(.*\\S)\\s+($_qty)\\s*([a-zA-Z]+\\.?)?\\s*\$',
+  );
   static final _vague = RegExp(
     r"q\.?\s?b\.?(?![a-z])|quanto basta|a piacere|"
     r"(?:un pizzico|un filo|una manciata|una noce|una presa|qualche)"

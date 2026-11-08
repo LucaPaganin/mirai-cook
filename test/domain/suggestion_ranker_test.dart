@@ -19,8 +19,10 @@ void main() {
     ];
     expect(labels(ranker.rank('pes', c, today)), ['Pasta al pesto']);
     expect(labels(ranker.rank('CAFFE', c, today)), ['Caffè latte']);
-    expect(labels(ranker.rank('p', c, today)),
-        unorderedEquals(['Pasta al pesto', 'Pizza fuori']));
+    expect(
+      labels(ranker.rank('p', c, today)),
+      unorderedEquals(['Pasta al pesto', 'Pizza fuori']),
+    );
     expect(labels(ranker.rank('di ris', c, today)), ['Insalata di riso']);
     expect(ranker.rank('xyz', c, today), isEmpty);
   });
@@ -31,19 +33,26 @@ void main() {
       Suggestion.recipe(1, 'Pasta al pesto', [daysAgo(10)]),
       Suggestion.recipe(2, 'Pasta e fagioli', [daysAgo(10), daysAgo(11)]),
     ];
-    expect(labels(ranker.rank('pasta', c, today)),
-        ['Pasta e fagioli', 'Pasta al pesto']);
+    expect(labels(ranker.rank('pasta', c, today)), [
+      'Pasta e fagioli',
+      'Pasta al pesto',
+    ]);
   });
 
   // Covers: PLAN-6
   test('recent use beats old frequent use', () {
     final c = [
-      Suggestion.recipe(1, 'Pasta al pesto',
-          [daysAgo(200), daysAgo(210), daysAgo(220)]),
+      Suggestion.recipe(1, 'Pasta al pesto', [
+        daysAgo(200),
+        daysAgo(210),
+        daysAgo(220),
+      ]),
       Suggestion.recipe(2, 'Pasta e fagioli', [daysAgo(2)]),
     ];
-    expect(labels(ranker.rank('pasta', c, today)),
-        ['Pasta e fagioli', 'Pasta al pesto']);
+    expect(labels(ranker.rank('pasta', c, today)), [
+      'Pasta e fagioli',
+      'Pasta al pesto',
+    ]);
   });
 
   // Covers: PLAN-6

@@ -75,9 +75,11 @@ class SuggestionRanker {
     for (final e in recipes.entries) {
       final extra = extraUses[e.key];
       final r = e.value;
-      result.add(extra == null
-          ? r
-          : Suggestion.recipe(r.recipeId!, r.label, [...r.uses, ...extra]));
+      result.add(
+        extra == null
+            ? r
+            : Suggestion.recipe(r.recipeId!, r.label, [...r.uses, ...extra]),
+      );
     }
     return result;
   }
