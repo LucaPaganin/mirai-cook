@@ -1136,3 +1136,173 @@ final class ShoppingListFamily extends $Family
   @override
   String toString() => r'shoppingListProvider';
 }
+
+@ProviderFor(httpClient)
+final httpClientProvider = HttpClientProvider._();
+
+final class HttpClientProvider
+    extends $FunctionalProvider<HttpClient, HttpClient, HttpClient>
+    with $Provider<HttpClient> {
+  HttpClientProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'httpClientProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$httpClientHash();
+
+  @$internal
+  @override
+  $ProviderElement<HttpClient> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  HttpClient create(Ref ref) {
+    return httpClient(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(HttpClient value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<HttpClient>(value),
+    );
+  }
+}
+
+String _$httpClientHash() => r'e2719afdda83e65abbababec0d9a8b6f3dc6bc57';
+
+@ProviderFor(thumbnailer)
+final thumbnailerProvider = ThumbnailerProvider._();
+
+final class ThumbnailerProvider
+    extends $FunctionalProvider<Thumbnailer, Thumbnailer, Thumbnailer>
+    with $Provider<Thumbnailer> {
+  ThumbnailerProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'thumbnailerProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$thumbnailerHash();
+
+  @$internal
+  @override
+  $ProviderElement<Thumbnailer> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  Thumbnailer create(Ref ref) {
+    return thumbnailer(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(Thumbnailer value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<Thumbnailer>(value),
+    );
+  }
+}
+
+String _$thumbnailerHash() => r'06a53b260a8a8b149117a6c6fd2762c6925d0a58';
+
+@ProviderFor(recipeImporter)
+final recipeImporterProvider = RecipeImporterProvider._();
+
+final class RecipeImporterProvider
+    extends $FunctionalProvider<RecipeImporter, RecipeImporter, RecipeImporter>
+    with $Provider<RecipeImporter> {
+  RecipeImporterProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'recipeImporterProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$recipeImporterHash();
+
+  @$internal
+  @override
+  $ProviderElement<RecipeImporter> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  RecipeImporter create(Ref ref) {
+    return recipeImporter(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(RecipeImporter value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<RecipeImporter>(value),
+    );
+  }
+}
+
+String _$recipeImporterHash() => r'3f118fbee21fabea4972f276e740d2c6691b7fc7';
+
+@ProviderFor(shareIntentSource)
+final shareIntentSourceProvider = ShareIntentSourceProvider._();
+
+final class ShareIntentSourceProvider
+    extends
+        $FunctionalProvider<
+          ShareIntentSource,
+          ShareIntentSource,
+          ShareIntentSource
+        >
+    with $Provider<ShareIntentSource> {
+  ShareIntentSourceProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'shareIntentSourceProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$shareIntentSourceHash();
+
+  @$internal
+  @override
+  $ProviderElement<ShareIntentSource> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  ShareIntentSource create(Ref ref) {
+    return shareIntentSource(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(ShareIntentSource value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<ShareIntentSource>(value),
+    );
+  }
+}
+
+String _$shareIntentSourceHash() => r'0d223ef852e9786315c9010c48015cda844f75c7';

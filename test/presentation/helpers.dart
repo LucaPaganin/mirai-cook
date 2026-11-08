@@ -14,10 +14,12 @@ import '../fakes.dart';
 final testNow = DateTime(2026, 11, 5, 12);
 
 class TestApp {
-  TestApp(this.db, this.clock);
+  TestApp(this.db, this.clock, this.http, this.share);
 
   final AppDatabase db;
   final FixedClock clock;
+  final FakeHttpClient http;
+  final FakeShareIntentSource share;
 }
 
 /// Runs a widget test against the full app with an in-memory database and
@@ -56,17 +58,22 @@ Future<TestApp> _pumpApp(
   // runAsync can deadlock against stream re-queries in the fake zone.
   if (seed != null) await tester.runAsync(() => seed(db));
   final clock = FixedClock(testNow);
+  final http = FakeHttpClient();
+  final share = FakeShareIntentSource();
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
         appDatabaseProvider.overrideWithValue(db),
         clockProvider.overrideWithValue(clock),
+        httpClientProvider.overrideWithValue(http),
+        thumbnailerProvider.overrideWithValue(FakeThumbnailer()),
+        shareIntentSourceProvider.overrideWithValue(share),
       ],
       child: MiraiCookApp(home: home),
     ),
   );
   await settle(tester);
-  return TestApp(db, clock);
+  return TestApp(db, clock, http, share);
 }
 
 /// Lets Drift stream queries deliver and animations finish. Uses bounded

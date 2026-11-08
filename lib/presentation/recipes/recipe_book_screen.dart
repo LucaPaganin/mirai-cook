@@ -5,15 +5,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../application/providers.dart';
 import '../../domain/recipe.dart';
+import '../import/import_screen.dart';
 import 'recipe_detail_screen.dart';
 import 'recipe_editor_screen.dart';
 
 /// RCP-1: all recipes, searchable by title.
 class RecipeBookScreen extends ConsumerStatefulWidget {
-  const RecipeBookScreen({super.key, this.onImport});
-
-  /// Opens the import-from-URL flow (IMP-2).
-  final VoidCallback? onImport;
+  const RecipeBookScreen({super.key});
 
   @override
   ConsumerState<RecipeBookScreen> createState() => _RecipeBookScreenState();
@@ -29,12 +27,11 @@ class _RecipeBookScreenState extends ConsumerState<RecipeBookScreen> {
       appBar: AppBar(
         title: const Text('Ricette'),
         actions: [
-          if (widget.onImport != null)
-            IconButton(
-              tooltip: 'Importa da URL',
-              icon: const Icon(Icons.link),
-              onPressed: widget.onImport,
-            ),
+          IconButton(
+            tooltip: 'Importa da URL',
+            icon: const Icon(Icons.link),
+            onPressed: () => showImportDialog(context), // IMP-2
+          ),
         ],
       ),
       floatingActionButton: FloatingActionButton(

@@ -3,8 +3,11 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../data/db/app_database.dart';
 import '../data/db/drift_repositories.dart';
+import '../data/http_client.dart';
 import '../data/repositories.dart';
+import '../data/share_intent.dart';
 import '../data/system_clock.dart';
+import '../data/thumbnailer.dart';
 import '../domain/calendar.dart';
 import '../domain/clock.dart';
 import '../domain/meal.dart';
@@ -12,6 +15,7 @@ import '../domain/recipe.dart';
 import '../domain/shopping.dart';
 import '../domain/store_section.dart';
 import '../domain/suggestion_ranker.dart';
+import 'recipe_importer.dart';
 
 part 'providers.g.dart';
 
@@ -154,3 +158,24 @@ Future<List<ShoppingRow>> shoppingList(Ref ref, Week week) async {
   return ShoppingListBuilder(SectionResolver(overrides: overrides))
       .build(entries: entries, manualItems: manual, checks: checks);
 }
+
+// ---------------------------------------------------------------------------
+// Import
+// ---------------------------------------------------------------------------
+
+@Riverpod(keepAlive: true)
+HttpClient httpClient(Ref ref) => PackageHttpClient();
+
+@Riverpod(keepAlive: true)
+Thumbnailer thumbnailer(Ref ref) => const ImageThumbnailer();
+
+@riverpod
+RecipeImporter recipeImporter(Ref ref) => RecipeImporter(
+  http: ref.watch(httpClientProvider),
+  recipes: ref.watch(recipeRepositoryProvider),
+  thumbnailer: ref.watch(thumbnailerProvider),
+);
+
+@Riverpod(keepAlive: true)
+ShareIntentSource shareIntentSource(Ref ref) =>
+    MethodChannelShareIntentSource();
