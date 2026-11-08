@@ -294,6 +294,10 @@ class DriftPlanRepository implements PlanRepository {
   }
 
   @override
+  Future<bool> hasAnyItems() async =>
+      await (_db.select(_db.slotItems)..limit(1)).getSingleOrNull() != null;
+
+  @override
   Future<List<Suggestion>> suggestionCandidates() async {
     final recipes = await _db.select(_db.recipes).get();
     final items = await _db.select(_db.slotItems).get();

@@ -120,5 +120,11 @@ cross-dimension unit conversion (cups, densities), English/imperial ingredient p
 - Shopping list persisted state: manual items and checked flags keyed by (normalized name, unit dimension); recipe-derived items are computed.
 - Tables for `ingredient_alias` and `ingredient_section`.
 
+## Decisions taken during implementation
+- Suggestion ranking (PLAN-6): each past use weighs 0.5^(age in days / 30); planned future uses count as today. Ties: recipes before free text, then alphabetical. Free text equal to a recipe title is folded into the recipe.
+- Imported recipes without a yield default to 4 servings.
+- Identical unquantified lines (e.g. "Sale q.b." from two recipes) are shown once (SHOP-4: no quantities are combined).
+- Restore keeps up to 3 local safety snapshots (DATA-16).
+
 ## Open points
-- Suggestion ranking formula (PLAN-6): weighting of frequency vs. recency to be fixed during implementation.
+- None.

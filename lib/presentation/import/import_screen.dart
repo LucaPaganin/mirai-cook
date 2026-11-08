@@ -43,26 +43,26 @@ class _ImportUrlDialogState extends State<_ImportUrlDialog> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-        title: const Text('Importa da URL'),
-        content: TextField(
-          key: const Key('import-url'),
-          controller: _controller,
-          autofocus: true,
-          keyboardType: TextInputType.url,
-          decoration: const InputDecoration(hintText: 'https://…'),
-          onSubmitted: (v) => Navigator.pop(context, v),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Annulla'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, _controller.text),
-            child: const Text('Importa'),
-          ),
-        ],
-      );
+    title: const Text('Importa da URL'),
+    content: TextField(
+      key: const Key('import-url'),
+      controller: _controller,
+      autofocus: true,
+      keyboardType: TextInputType.url,
+      decoration: const InputDecoration(hintText: 'https://…'),
+      onSubmitted: (v) => Navigator.pop(context, v),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: const Text('Annulla'),
+      ),
+      FilledButton(
+        onPressed: () => Navigator.pop(context, _controller.text),
+        child: const Text('Importa'),
+      ),
+    ],
+  );
 }
 
 Future<void> openImport(BuildContext context, String input) => Navigator.push(

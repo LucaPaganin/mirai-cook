@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../application/providers.dart';
 import '../../data/repositories.dart';
+import '../backup/backup_section.dart';
 import '../common/format.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -48,6 +49,7 @@ class SettingsScreen extends ConsumerWidget {
               ],
             ),
           ),
+          const BackupSection(),
         ],
       ),
     );

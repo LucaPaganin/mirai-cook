@@ -49,6 +49,47 @@ final class ClockProvider extends $FunctionalProvider<Clock, Clock, Clock>
 
 String _$clockHash() => r'55214d6539f7396a3ae1aa23b06eea79fdac0ebe';
 
+@ProviderFor(databaseFiles)
+final databaseFilesProvider = DatabaseFilesProvider._();
+
+final class DatabaseFilesProvider
+    extends $FunctionalProvider<DatabaseFiles, DatabaseFiles, DatabaseFiles>
+    with $Provider<DatabaseFiles> {
+  DatabaseFilesProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'databaseFilesProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$databaseFilesHash();
+
+  @$internal
+  @override
+  $ProviderElement<DatabaseFiles> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  DatabaseFiles create(Ref ref) {
+    return databaseFiles(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(DatabaseFiles value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<DatabaseFiles>(value),
+    );
+  }
+}
+
+String _$databaseFilesHash() => r'7c54b856d60764f133e7f703fb341b530b2879cd';
+
 @ProviderFor(appDatabase)
 final appDatabaseProvider = AppDatabaseProvider._();
 
@@ -88,7 +129,7 @@ final class AppDatabaseProvider
   }
 }
 
-String _$appDatabaseHash() => r'3fd194f32f2ccc407850ed4af05e409077cc5879';
+String _$appDatabaseHash() => r'1d32c5e6022201ef2946d197336afb6a250ef9cb';
 
 @ProviderFor(recipeRepository)
 final recipeRepositoryProvider = RecipeRepositoryProvider._();
@@ -1306,3 +1347,327 @@ final class ShareIntentSourceProvider
 }
 
 String _$shareIntentSourceHash() => r'0d223ef852e9786315c9010c48015cda844f75c7';
+
+@ProviderFor(backupAccount)
+final backupAccountProvider = BackupAccountProvider._();
+
+final class BackupAccountProvider
+    extends $FunctionalProvider<BackupAccount, BackupAccount, BackupAccount>
+    with $Provider<BackupAccount> {
+  BackupAccountProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'backupAccountProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$backupAccountHash();
+
+  @$internal
+  @override
+  $ProviderElement<BackupAccount> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  BackupAccount create(Ref ref) {
+    return backupAccount(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(BackupAccount value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<BackupAccount>(value),
+    );
+  }
+}
+
+String _$backupAccountHash() => r'75e21394b2d5d5e821a6130dd8a5e01dd83871b9';
+
+@ProviderFor(backgroundScheduler)
+final backgroundSchedulerProvider = BackgroundSchedulerProvider._();
+
+final class BackgroundSchedulerProvider
+    extends
+        $FunctionalProvider<
+          BackgroundScheduler?,
+          BackgroundScheduler?,
+          BackgroundScheduler?
+        >
+    with $Provider<BackgroundScheduler?> {
+  BackgroundSchedulerProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'backgroundSchedulerProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$backgroundSchedulerHash();
+
+  @$internal
+  @override
+  $ProviderElement<BackgroundScheduler?> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  BackgroundScheduler? create(Ref ref) {
+    return backgroundScheduler(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(BackgroundScheduler? value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<BackgroundScheduler?>(value),
+    );
+  }
+}
+
+String _$backgroundSchedulerHash() =>
+    r'3d96872e003d46df8abc4493b3052a80632f2977';
+
+@ProviderFor(backupService)
+final backupServiceProvider = BackupServiceProvider._();
+
+final class BackupServiceProvider
+    extends $FunctionalProvider<BackupService, BackupService, BackupService>
+    with $Provider<BackupService> {
+  BackupServiceProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'backupServiceProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$backupServiceHash();
+
+  @$internal
+  @override
+  $ProviderElement<BackupService> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  BackupService create(Ref ref) {
+    return backupService(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(BackupService value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<BackupService>(value),
+    );
+  }
+}
+
+String _$backupServiceHash() => r'74c341ff5a8bf8d03932b41d440ebc8fe58c52ce';
+
+@ProviderFor(changeTracker)
+final changeTrackerProvider = ChangeTrackerProvider._();
+
+final class ChangeTrackerProvider
+    extends $FunctionalProvider<ChangeTracker, ChangeTracker, ChangeTracker>
+    with $Provider<ChangeTracker> {
+  ChangeTrackerProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'changeTrackerProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$changeTrackerHash();
+
+  @$internal
+  @override
+  $ProviderElement<ChangeTracker> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  ChangeTracker create(Ref ref) {
+    return changeTracker(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(ChangeTracker value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<ChangeTracker>(value),
+    );
+  }
+}
+
+String _$changeTrackerHash() => r'fe5e6514ba206d84561b3b09ccf7d3767df6aba2';
+
+@ProviderFor(setting)
+final settingProvider = SettingFamily._();
+
+final class SettingProvider
+    extends $FunctionalProvider<AsyncValue<String?>, String?, Stream<String?>>
+    with $FutureModifier<String?>, $StreamProvider<String?> {
+  SettingProvider._({
+    required SettingFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'settingProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$settingHash();
+
+  @override
+  String toString() {
+    return r'settingProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $StreamProviderElement<String?> $createElement($ProviderPointer pointer) =>
+      $StreamProviderElement(pointer);
+
+  @override
+  Stream<String?> create(Ref ref) {
+    final argument = this.argument as String;
+    return setting(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is SettingProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$settingHash() => r'562a165a5b76dde75a6ac3e5f7641b02cab14334';
+
+final class SettingFamily extends $Family
+    with $FunctionalFamilyOverride<Stream<String?>, String> {
+  SettingFamily._()
+    : super(
+        retry: null,
+        name: r'settingProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  SettingProvider call(String key) =>
+      SettingProvider._(argument: key, from: this);
+
+  @override
+  String toString() => r'settingProvider';
+}
+
+@ProviderFor(backupController)
+final backupControllerProvider = BackupControllerProvider._();
+
+final class BackupControllerProvider
+    extends
+        $FunctionalProvider<
+          BackupController,
+          BackupController,
+          BackupController
+        >
+    with $Provider<BackupController> {
+  BackupControllerProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'backupControllerProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$backupControllerHash();
+
+  @$internal
+  @override
+  $ProviderElement<BackupController> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  BackupController create(Ref ref) {
+    return backupController(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(BackupController value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<BackupController>(value),
+    );
+  }
+}
+
+String _$backupControllerHash() => r'2322b9acebb28b8e3b6fe4279e8b356a3c17695f';
+
+/// First launch with an empty database (DATA-14).
+
+@ProviderFor(needsOnboarding)
+final needsOnboardingProvider = NeedsOnboardingProvider._();
+
+/// First launch with an empty database (DATA-14).
+
+final class NeedsOnboardingProvider
+    extends $FunctionalProvider<AsyncValue<bool>, bool, FutureOr<bool>>
+    with $FutureModifier<bool>, $FutureProvider<bool> {
+  /// First launch with an empty database (DATA-14).
+  NeedsOnboardingProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'needsOnboardingProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$needsOnboardingHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<bool> $createElement($ProviderPointer pointer) =>
+      $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<bool> create(Ref ref) {
+    return needsOnboarding(ref);
+  }
+}
+
+String _$needsOnboardingHash() => r'b6b9757db097f001842a872e2ed53c2241191dcd';

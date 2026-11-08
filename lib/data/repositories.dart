@@ -43,6 +43,7 @@ abstract interface class PlanRepository {
   /// Replaces [target] with the items of the previous week (PLAN-10).
   Future<void> duplicatePreviousWeek(Week target);
   Future<bool> hasItems(Week week);
+  Future<bool> hasAnyItems();
 
   /// Recipes and previously used free texts with their planned dates.
   Future<List<Suggestion>> suggestionCandidates();
@@ -76,4 +77,6 @@ abstract final class SettingKeys {
   static const lastBackupAt = 'last_backup_at';
   static const lastChangeAt = 'last_change_at';
   static const backupAccount = 'backup_account';
+  static const lastBackupError = 'last_backup_error';
+  static const onboardingDone = 'onboarding_done';
 }
