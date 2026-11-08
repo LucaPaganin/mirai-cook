@@ -21,6 +21,42 @@ Drift tables or Riverpod providers.
 3. `dart run drift_dev make-migrations` — exports `drift_schemas/` and
    generates step-by-step migration tests under `test/data/generated_migrations/`.
 
+## CI and releases
+
+`.github/workflows/android.yml` runs on every push:
+
+1. **Analyze & test**: checks generated code is committed, `flutter analyze`, `flutter test`.
+2. **Build APK**: release APK uploaded as the `mirai-cook-apk` artifact
+   (Actions → run → Artifacts).
+3. **GitHub release**: on a `v*` tag (e.g. `git tag v0.1.0 && git push origin v0.1.0`)
+   the APK is attached to a new release.
+
+### Signing key (recommended)
+
+Without a key, CI signs with a throwaway debug key that changes on every
+run: each new APK then requires uninstalling the old one, and Google Sign-In
+won't work (its SHA-1 changes). Create a key once:
+
+```sh
+keytool -genkey -v -keystore upload-keystore.jks -keyalg RSA -keysize 2048 \
+  -validity 10000 -alias upload
+base64 -w0 upload-keystore.jks   # value for ANDROID_KEYSTORE_BASE64
+keytool -list -v -keystore upload-keystore.jks -alias upload  # SHA-1 for Google Cloud
+```
+
+Repository settings → Secrets and variables → Actions:
+
+| Kind | Name |
+|---|---|
+| Secret | `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD` |
+| Variable | `GOOGLE_SERVER_CLIENT_ID` (web OAuth client ID, see below) |
+
+Keep the `.jks` file safe outside the repo: losing it means users must
+reinstall.
+
+For local release builds, create `android/key.properties` (gitignored) with
+`storeFile`, `storePassword`, `keyAlias`, `keyPassword`.
+
 ## Google Drive backup setup
 
 Backups use Google Sign-In with the `drive.file` scope. Before the
