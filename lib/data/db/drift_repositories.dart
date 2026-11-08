@@ -229,6 +229,9 @@ class DriftPlanRepository implements PlanRepository {
       });
 
   @override
+  Future<void> clearSlot(SlotId slot) => _deleteSlot(slot);
+
+  @override
   Future<void> setServingsAt(SlotId slot, int index, double servings) =>
       _db.transaction(() async {
         final rows = await _rows(slot);

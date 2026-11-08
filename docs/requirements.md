@@ -22,14 +22,14 @@ EARS patterns used:
 - **PLAN-6** When the user types in the slot field, the app shall suggest matching recipes and previously used free texts, ranked by frequency and recency of use.
 - **PLAN-7** When the user selects a suggestion or confirms the typed text, the app shall add it as an item to the slot, save the slot and close the bottom sheet.
 - **PLAN-8** The app shall allow assigning a meal to an empty slot with at most 2 taps plus typing.
-- **PLAN-9** When the user long-presses a slot, the app shall offer to move or copy it (all its items) to another slot.
+- **PLAN-9** When the user long-presses a slot, the app shall offer to move or copy it (all its items) to another slot, or to clear it.
 - **PLAN-10** When the user requests "duplicate previous week" on a week, the app shall copy all slots of the previous week, with all their items, into that week.
 - **PLAN-11** If the target week already contains non-empty slots when duplicating, then the app shall ask for confirmation before overwriting them.
 - **PLAN-12** Where a slot item references a recipe, the app shall allow setting the number of servings for that item, defaulting to the "default servings" setting (default 1).
 - **PLAN-13** The app shall determine "current week" from an injected clock, never directly from the system time.
 - **PLAN-14** The app shall treat Monday as the first day of the week; this is not configurable in the MVP.
 - **PLAN-15** The app shall identify a slot by its calendar date and meal type, not by week number and day index.
-- **PLAN-16** When the user swipes a slot item in the bottom sheet, the app shall remove that item.
+- **PLAN-16** When the user swipes a slot item in the bottom sheet or taps its remove button, the app shall remove that item.
 - **PLAN-17** Where a recipe item's servings differ from the default servings, the app shall show the servings on the slot (e.g. "×4").
 - **PLAN-18** The app shall provide a "default servings" setting, default 1.
 

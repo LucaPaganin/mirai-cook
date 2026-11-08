@@ -152,4 +152,53 @@ void main() {
       );
     },
   );
+
+  // Covers: PLAN-16
+  appTest(
+    'the bin button in the sheet removes one item',
+    seed: (db) async {
+      final plan = DriftPlanRepository(db);
+      await plan.addItem(thuLunch, const FreeTextItem('Pane'));
+      await plan.addItem(thuLunch, const FreeTextItem('Insalata'));
+    },
+    (tester, app) async {
+      await tester.tap(slotFinder(thuLunch));
+      await settle(tester);
+      await tester.tap(find.byKey(const Key('remove-item-0')));
+      await settle(tester);
+      await tester.tapAt(const Offset(10, 10));
+      await settle(tester);
+      expect(
+        find.descendant(of: slotFinder(thuLunch), matching: find.text('Pane')),
+        findsNothing,
+      );
+      expect(
+        find.descendant(
+          of: slotFinder(thuLunch),
+          matching: find.text('Insalata'),
+        ),
+        findsOneWidget,
+      );
+    },
+  );
+
+  // Covers: PLAN-9
+  appTest(
+    'long press offers to clear the whole meal',
+    seed: (db) async {
+      final plan = DriftPlanRepository(db);
+      await plan.addItem(thuLunch, const FreeTextItem('Pane'));
+      await plan.addItem(thuLunch, const FreeTextItem('Insalata'));
+    },
+    (tester, app) async {
+      await tester.longPress(slotFinder(thuLunch));
+      await settle(tester);
+      await tester.tap(find.text('Svuota pasto'));
+      await settle(tester);
+      expect(
+        find.descendant(of: slotFinder(thuLunch), matching: find.text('—')),
+        findsOneWidget,
+      );
+    },
+  );
 }

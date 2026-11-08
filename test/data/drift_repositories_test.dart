@@ -170,6 +170,17 @@ void main() {
       expect(slots[tue], hasLength(2));
     });
 
+    // Covers: PLAN-9
+    test('clearing a slot removes all its items only', () async {
+      await plan.addItem(lunchMon, const FreeTextItem('A'));
+      await plan.addItem(lunchMon, const FreeTextItem('B'));
+      await plan.addItem(dinnerMon, const FreeTextItem('C'));
+      await plan.clearSlot(lunchMon);
+      final slots = await plan.getRange(week.monday, week.sunday);
+      expect(slots[lunchMon], isNull);
+      expect(slots[dinnerMon], [const FreeTextItem('C')]);
+    });
+
     // Covers: PLAN-10, PLAN-11
     test('duplicate previous week replaces the target week', () async {
       final prevMon = SlotId(week.previous.monday, MealType.dinner);

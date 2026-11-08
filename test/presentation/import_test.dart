@@ -65,7 +65,7 @@ void main() {
     await tester.tap(find.text('Ricette'));
     await settle(tester);
     await tester.tap(find.byTooltip('Importa da URL'));
-    await settle(tester);
+    await settleUntilFound(tester, find.byKey(const Key('import-url')));
     await tester.enterText(find.byKey(const Key('import-url')), url);
     await tester.tap(find.text('Importa'));
     await settle(tester);

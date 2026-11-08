@@ -6,13 +6,15 @@ import '../../domain/calendar.dart';
 import '../../domain/meal.dart';
 import '../common/format.dart';
 
-/// Long-press menu: move or copy a slot to another slot (PLAN-9).
+enum _SlotAction { move, copy, clear }
+
+/// Long-press menu: move, copy or clear a slot (PLAN-9).
 Future<void> showSlotActions(
   BuildContext context,
   WidgetRef ref,
   SlotId slot,
 ) async {
-  final move = await showModalBottomSheet<bool>(
+  final action = await showModalBottomSheet<_SlotAction>(
     context: context,
     builder: (context) => SafeArea(
       child: Column(
@@ -21,21 +23,31 @@ Future<void> showSlotActions(
           ListTile(
             leading: const Icon(Icons.drive_file_move_outline),
             title: const Text('Sposta in…'),
-            onTap: () => Navigator.pop(context, true),
+            onTap: () => Navigator.pop(context, _SlotAction.move),
           ),
           ListTile(
             leading: const Icon(Icons.copy),
             title: const Text('Copia in…'),
-            onTap: () => Navigator.pop(context, false),
+            onTap: () => Navigator.pop(context, _SlotAction.copy),
+          ),
+          ListTile(
+            leading: const Icon(Icons.delete_outline),
+            title: const Text('Svuota pasto'),
+            onTap: () => Navigator.pop(context, _SlotAction.clear),
           ),
         ],
       ),
     ),
   );
-  if (move == null || !context.mounted) return;
+  if (action == null || !context.mounted) return;
+  final repo = ref.read(planRepositoryProvider);
+  if (action == _SlotAction.clear) {
+    await repo.clearSlot(slot);
+    return;
+  }
   final target = await pickSlot(context, initial: slot);
   if (target == null) return;
-  await ref.read(planRepositoryProvider).transferSlot(slot, target, move: move);
+  await repo.transferSlot(slot, target, move: action == _SlotAction.move);
 }
 
 Future<SlotId?> pickSlot(

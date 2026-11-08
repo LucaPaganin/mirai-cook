@@ -35,6 +35,9 @@ abstract interface class PlanRepository {
 
   Future<void> addItem(SlotId slot, SlotItem item);
   Future<void> removeItemAt(SlotId slot, int index);
+
+  /// Removes all items of [slot] (PLAN-9).
+  Future<void> clearSlot(SlotId slot);
   Future<void> setServingsAt(SlotId slot, int index, double servings);
 
   /// Appends all items of [from] to [to]; with [move] [from] is emptied.
