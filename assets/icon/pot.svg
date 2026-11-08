@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- Pot drawn inside the adaptive-icon safe zone (centre ~66%) -->
+  <g fill="#FFFFFF">
+    <!-- steam -->
+    <g fill="none" stroke="#FFFFFF" stroke-width="30" stroke-linecap="round">
+      <path d="M432 300 c-28 -34 28 -58 0 -96"/>
+      <path d="M512 290 c-28 -34 28 -58 0 -96"/>
+      <path d="M592 300 c-28 -34 28 -58 0 -96"/>
+    </g>
+    <!-- lid knob -->
+    <rect x="478" y="350" width="68" height="42" rx="18"/>
+    <!-- lid -->
+    <path d="M300 452 C300 400 380 380 512 380 C644 380 724 400 724 452 Z"/>
+    <!-- rim -->
+    <rect x="272" y="462" width="480" height="40" rx="20"/>
+    <!-- handles -->
+    <rect x="212" y="530" width="100" height="44" rx="22"/>
+    <rect x="712" y="530" width="100" height="44" rx="22"/>
+    <!-- body -->
+    <path d="M300 512 H724 V690 C724 744 690 778 636 778 H388 C334 778 300 744 300 690 Z"/>
+  </g>
+</svg>
