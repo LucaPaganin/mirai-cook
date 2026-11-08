@@ -26,4 +26,42 @@ void main() {
       '2',
     );
   });
+
+  // Covers: UI-1, UI-2
+  appTest('the theme follows the system by default and can be forced', (
+    tester,
+    app,
+  ) async {
+    ThemeMode mode() =>
+        tester.widget<MaterialApp>(find.byType(MaterialApp)).themeMode!;
+    expect(mode(), ThemeMode.system);
+    expect(
+      tester.widget<MaterialApp>(find.byType(MaterialApp)).darkTheme,
+      isNotNull,
+    );
+
+    await tester.tap(find.text('Impostazioni'));
+    await settle(tester);
+    await tester.tap(find.text('Scuro'));
+    await settle(tester);
+    expect(mode(), ThemeMode.dark);
+    expect(
+      Theme.of(tester.element(find.text('Tema'))).brightness,
+      Brightness.dark,
+    );
+
+    await tester.tap(find.text('Chiaro'));
+    await settle(tester);
+    expect(mode(), ThemeMode.light);
+
+    await tester.tap(find.text('Sistema'));
+    await settle(tester);
+    expect(mode(), ThemeMode.system);
+    expect(
+      await tester.runAsync(
+        () => DriftSettingsRepository(app.db).get(SettingKeys.themeMode),
+      ),
+      isNull,
+    );
+  });
 }

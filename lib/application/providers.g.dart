@@ -477,6 +477,45 @@ final class WeekPlanFamily extends $Family
   String toString() => r'weekPlanProvider';
 }
 
+/// Theme mode from settings (UI-1).
+
+@ProviderFor(themeMode)
+final themeModeProvider = ThemeModeProvider._();
+
+/// Theme mode from settings (UI-1).
+
+final class ThemeModeProvider
+    extends
+        $FunctionalProvider<AsyncValue<ThemeMode>, ThemeMode, Stream<ThemeMode>>
+    with $FutureModifier<ThemeMode>, $StreamProvider<ThemeMode> {
+  /// Theme mode from settings (UI-1).
+  ThemeModeProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'themeModeProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$themeModeHash();
+
+  @$internal
+  @override
+  $StreamProviderElement<ThemeMode> $createElement($ProviderPointer pointer) =>
+      $StreamProviderElement(pointer);
+
+  @override
+  Stream<ThemeMode> create(Ref ref) {
+    return themeMode(ref);
+  }
+}
+
+String _$themeModeHash() => r'42527fd9e5f3348fb912b9ca77907a5b47ec08fe';
+
 /// Default servings for new recipe items (PLAN-12, PLAN-18).
 
 @ProviderFor(defaultServings)

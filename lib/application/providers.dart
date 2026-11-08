@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:drift_flutter/drift_flutter.dart';
+import 'package:flutter/material.dart' show ThemeMode;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../data/backup/backup_target.dart';
@@ -89,6 +90,19 @@ Week currentWeek(Ref ref) => Week.containing(ref.watch(todayProvider));
 @riverpod
 Stream<Map<SlotId, List<SlotItem>>> weekPlan(Ref ref, Week week) =>
     ref.watch(planRepositoryProvider).watchRange(week.monday, week.sunday);
+
+/// Theme mode from settings (UI-1).
+@riverpod
+Stream<ThemeMode> themeMode(Ref ref) => ref
+    .watch(settingsRepositoryProvider)
+    .watch(SettingKeys.themeMode)
+    .map(
+      (v) => switch (v) {
+        'light' => ThemeMode.light,
+        'dark' => ThemeMode.dark,
+        _ => ThemeMode.system,
+      },
+    );
 
 /// Default servings for new recipe items (PLAN-12, PLAN-18).
 @riverpod

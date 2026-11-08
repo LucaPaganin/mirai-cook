@@ -17,6 +17,40 @@ class SettingsScreen extends ConsumerWidget {
       appBar: AppBar(title: const Text('Impostazioni')),
       body: ListView(
         children: [
+          // UI-1
+          ListTile(
+            title: const Text('Tema'),
+            subtitle: Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: SegmentedButton<ThemeMode>(
+                key: const Key('theme-mode'),
+                segments: const [
+                  ButtonSegment(
+                    value: ThemeMode.system,
+                    icon: Icon(Icons.brightness_auto),
+                    label: Text('Sistema'),
+                  ),
+                  ButtonSegment(
+                    value: ThemeMode.light,
+                    icon: Icon(Icons.light_mode),
+                    label: Text('Chiaro'),
+                  ),
+                  ButtonSegment(
+                    value: ThemeMode.dark,
+                    icon: Icon(Icons.dark_mode),
+                    label: Text('Scuro'),
+                  ),
+                ],
+                selected: {
+                  ref.watch(themeModeProvider).value ?? ThemeMode.system,
+                },
+                onSelectionChanged: (s) => settings.set(
+                  SettingKeys.themeMode,
+                  s.single == ThemeMode.system ? null : s.single.name,
+                ),
+              ),
+            ),
+          ),
           // PLAN-18
           ListTile(
             title: const Text('Porzioni predefinite'),

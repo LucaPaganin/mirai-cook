@@ -94,4 +94,7 @@ abstract final class SettingKeys {
   static const backupAccount = 'backup_account';
   static const lastBackupError = 'last_backup_error';
   static const onboardingDone = 'onboarding_done';
+
+  /// 'system' (default), 'light' or 'dark' (UI-1).
+  static const themeMode = 'theme_mode';
 }

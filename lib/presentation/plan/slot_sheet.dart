@@ -105,7 +105,9 @@ class _SlotSheetState extends ConsumerState<SlotSheet> {
                   await repo.removeItemAt(slot, index);
                   return true;
                 },
-                background: Container(color: Colors.red.shade100),
+                background: Container(
+                  color: Theme.of(context).colorScheme.errorContainer,
+                ),
                 child: ListTile(
                   dense: true,
                   leading: Icon(

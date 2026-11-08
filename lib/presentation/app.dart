@@ -14,23 +14,34 @@ import 'recipes/recipe_book_screen.dart';
 import 'settings/settings_screen.dart';
 import 'shopping/shopping_screen.dart';
 
-class MiraiCookApp extends StatelessWidget {
+/// Brand colour, also the launcher icon background.
+const brandColor = Color(0xFFE07A3F);
+
+ThemeData buildTheme(Brightness brightness) => ThemeData(
+  colorScheme: ColorScheme.fromSeed(
+    seedColor: brandColor,
+    brightness: brightness,
+  ),
+  useMaterial3: true,
+);
+
+class MiraiCookApp extends ConsumerWidget {
   const MiraiCookApp({super.key, this.home});
 
   /// Overrides the home widget (tests, onboarding).
   final Widget? home;
 
   @override
-  Widget build(BuildContext context) => MaterialApp(
+  Widget build(BuildContext context, WidgetRef ref) => MaterialApp(
     title: 'Mirai Cook',
     debugShowCheckedModeBanner: false,
     locale: const Locale('it'),
     supportedLocales: const [Locale('it')],
     localizationsDelegates: GlobalMaterialLocalizations.delegates,
-    theme: ThemeData(
-      colorSchemeSeed: const Color(0xFFE07A3F),
-      useMaterial3: true,
-    ),
+    // UI-1, UI-2
+    theme: buildTheme(Brightness.light),
+    darkTheme: buildTheme(Brightness.dark),
+    themeMode: ref.watch(themeModeProvider).value ?? ThemeMode.system,
     home: home ?? const StartupGate(),
   );
 }
