@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mirai_cook/data/db/drift_repositories.dart';
+import 'package:mirai_cook/domain/calendar.dart';
+import 'package:mirai_cook/domain/meal.dart';
 import 'package:mirai_cook/domain/recipe.dart';
 
 import 'helpers.dart';
@@ -78,4 +80,26 @@ void main() {
     await settle(tester);
     expect(find.text('Inserisci un titolo'), findsOneWidget);
   });
+
+  // Covers: PLAN-20
+  appTest(
+    'saving a recipe links meals planned with its title',
+    seed: (db) => DriftPlanRepository(db).addItem(
+      SlotId(const CalendarDate(2026, 11, 5), MealType.dinner),
+      const FreeTextItem('frittata'),
+    ),
+    (tester, app) async {
+      await openRecipesTab(tester);
+      await tester.tap(find.byTooltip('Nuova ricetta'));
+      await settle(tester);
+      await tester.enterText(find.byKey(const Key('recipe-title')), 'Frittata');
+      await tester.tap(find.byKey(const Key('save-recipe')));
+      await settle(tester);
+      const thu = CalendarDate(2026, 11, 5);
+      final slots = (await tester.runAsync(
+        () => DriftPlanRepository(app.db).getRange(thu, thu),
+      ))!;
+      expect(slots[SlotId(thu, MealType.dinner)]!.single, isA<RecipeItem>());
+    },
+  );
 }

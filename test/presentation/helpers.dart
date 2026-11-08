@@ -109,6 +109,15 @@ Future<TestApp> _pumpApp(
   return TestApp(db, clock, http, share, account, scheduler);
 }
 
+/// Settles repeatedly until [finder] matches (async platform calls such as
+/// reading the clipboard can take more than one [settle] under load).
+Future<void> settleUntilFound(WidgetTester tester, Finder finder) async {
+  for (var i = 0; i < 20 && finder.evaluate().isEmpty; i++) {
+    await settle(tester);
+  }
+  expect(finder, findsWidgets);
+}
+
 /// Lets Drift stream queries deliver and animations finish. Uses bounded
 /// pumps because a focused text field's cursor never "settles".
 Future<void> settle(WidgetTester tester) async {

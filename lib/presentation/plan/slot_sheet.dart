@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../application/providers.dart';
 import '../../domain/calendar.dart';
 import '../../domain/meal.dart';
+import '../../domain/recipe_matching.dart';
 import '../../domain/suggestion_ranker.dart';
 import '../common/format.dart';
 import 'week_screen.dart';
@@ -50,10 +51,18 @@ class _SlotSheetState extends ConsumerState<SlotSheet> {
     }
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     final text = _text.text.trim();
     if (text.isEmpty) return;
-    _add(FreeTextItem(text));
+    // PLAN-19: text equal to a recipe title becomes a recipe reference.
+    final recipes = await ref.read(recipeIndexProvider.future);
+    final recipeId = matchRecipeByTitle(text, recipes.values);
+    if (recipeId == null) {
+      await _add(FreeTextItem(text));
+    } else {
+      final servings = await ref.read(defaultServingsProvider.future);
+      await _add(RecipeItem(recipeId: recipeId, servings: servings));
+    }
   }
 
   @override
@@ -87,9 +96,15 @@ class _SlotSheetState extends ConsumerState<SlotSheet> {
               ),
             ),
             for (final (index, item) in items.indexed)
+              // PLAN-16: swipe or tap the bin to remove an item.
               Dismissible(
                 key: ValueKey('item-$index-${item.hashCode}'),
-                onDismissed: (_) => repo.removeItemAt(slot, index), // PLAN-16
+                // Delete before the widget leaves, so the list from the
+                // database no longer contains it when the sheet rebuilds.
+                confirmDismiss: (_) async {
+                  await repo.removeItemAt(slot, index);
+                  return true;
+                },
                 background: Container(color: Colors.red.shade100),
                 child: ListTile(
                   dense: true,
@@ -97,13 +112,23 @@ class _SlotSheetState extends ConsumerState<SlotSheet> {
                     item is RecipeItem ? Icons.menu_book : Icons.notes,
                   ),
                   title: Text(slotItemLabel(item, recipes, defaultServings)),
-                  trailing: item is RecipeItem
-                      ? _ServingsStepper(
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (item is RecipeItem)
+                        _ServingsStepper(
                           servings: item.servings,
                           onChanged: (v) =>
                               repo.setServingsAt(slot, index, v), // PLAN-12
-                        )
-                      : null,
+                        ),
+                      IconButton(
+                        key: Key('remove-item-$index'),
+                        tooltip: 'Rimuovi',
+                        icon: const Icon(Icons.delete_outline),
+                        onPressed: () => repo.removeItemAt(slot, index),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             Padding(

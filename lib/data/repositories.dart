@@ -35,6 +35,14 @@ abstract interface class PlanRepository {
 
   Future<void> addItem(SlotId slot, SlotItem item);
   Future<void> removeItemAt(SlotId slot, int index);
+
+  /// Removes all items of [slot] (PLAN-9).
+  Future<void> clearSlot(SlotId slot);
+
+  /// Turns free-text items whose normalized text equals [title] into
+  /// references to [recipeId] with [servings] (PLAN-20). Returns how many
+  /// items were linked.
+  Future<int> linkFreeTextToRecipe(int recipeId, String title, double servings);
   Future<void> setServingsAt(SlotId slot, int index, double servings);
 
   /// Appends all items of [from] to [to]; with [move] [from] is emptied.

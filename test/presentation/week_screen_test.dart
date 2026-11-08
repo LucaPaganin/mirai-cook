@@ -152,4 +152,79 @@ void main() {
       );
     },
   );
+
+  // Covers: PLAN-16
+  appTest(
+    'the bin button in the sheet removes one item',
+    seed: (db) async {
+      final plan = DriftPlanRepository(db);
+      await plan.addItem(thuLunch, const FreeTextItem('Pane'));
+      await plan.addItem(thuLunch, const FreeTextItem('Insalata'));
+    },
+    (tester, app) async {
+      await tester.tap(slotFinder(thuLunch));
+      await settle(tester);
+      await tester.tap(find.byKey(const Key('remove-item-0')));
+      await settle(tester);
+      await tester.tapAt(const Offset(10, 10));
+      await settle(tester);
+      expect(
+        find.descendant(of: slotFinder(thuLunch), matching: find.text('Pane')),
+        findsNothing,
+      );
+      expect(
+        find.descendant(
+          of: slotFinder(thuLunch),
+          matching: find.text('Insalata'),
+        ),
+        findsOneWidget,
+      );
+    },
+  );
+
+  // Covers: PLAN-9
+  appTest(
+    'long press offers to clear the whole meal',
+    seed: (db) async {
+      final plan = DriftPlanRepository(db);
+      await plan.addItem(thuLunch, const FreeTextItem('Pane'));
+      await plan.addItem(thuLunch, const FreeTextItem('Insalata'));
+    },
+    (tester, app) async {
+      await tester.longPress(slotFinder(thuLunch));
+      await settle(tester);
+      await tester.tap(find.text('Svuota pasto'));
+      await settle(tester);
+      expect(
+        find.descendant(of: slotFinder(thuLunch), matching: find.text('—')),
+        findsOneWidget,
+      );
+    },
+  );
+
+  // Covers: PLAN-19
+  appTest(
+    'typing a recipe title links the recipe',
+    seed: (db) =>
+        DriftRecipeRepository(db)
+            .save(const Recipe(title: 'Lasagna', servings: 6)),
+    (tester, app) async {
+      await tester.tap(slotFinder(thuLunch));
+      await settle(tester);
+      await tester.enterText(find.byKey(const Key('slot-field')), ' lasagna ');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await settle(tester);
+      final slots = (await tester.runAsync(
+        () => DriftPlanRepository(app.db).getRange(thursday, thursday),
+      ))!;
+      expect(slots[thuLunch]!.single, isA<RecipeItem>());
+      expect(
+        find.descendant(
+          of: slotFinder(thuLunch),
+          matching: find.text('Lasagna'),
+        ),
+        findsOneWidget,
+      );
+    },
+  );
 }

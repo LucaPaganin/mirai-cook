@@ -83,6 +83,14 @@ class _RecipeEditorScreenState extends ConsumerState<RecipeEditorScreen> {
       ],
     );
     final id = await ref.read(recipeRepositoryProvider).save(recipe);
+    // PLAN-20: meals already planned as text with this title now use it.
+    await ref
+        .read(planRepositoryProvider)
+        .linkFreeTextToRecipe(
+          id,
+          recipe.title,
+          await ref.read(defaultServingsProvider.future),
+        );
     if (mounted) Navigator.pop(context, id);
   }
 

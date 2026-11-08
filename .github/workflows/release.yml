@@ -1,6 +1,8 @@
 name: Release
 
-# Manual release: Actions → Release → Run workflow → enter the version.
+# Manual release with a chosen version (e.g. to jump to 0.2.0 or 1.0.0).
+# Every push to main is already released automatically by android.yml.
+# Actions → Release → Run workflow → enter the version.
 # Runs the tests, builds the APK, creates the tag vX.Y.Z on the selected
 # commit and publishes a GitHub release with the APK attached.
 on:
@@ -41,6 +43,10 @@ jobs:
   build:
     name: Test & build
     needs: validate
+    # The called workflow declares a release job needing contents: write
+    # (skipped here); callers must grant at least that.
+    permissions:
+      contents: write
     uses: ./.github/workflows/android.yml
     with:
       build-name: ${{ inputs.version }}

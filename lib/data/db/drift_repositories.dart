@@ -4,6 +4,7 @@ import 'package:drift/drift.dart';
 
 import '../../domain/calendar.dart';
 import '../../domain/meal.dart';
+import '../../domain/name_normalizer.dart';
 import '../../domain/recipe.dart';
 import '../../domain/shopping.dart';
 import '../../domain/store_section.dart';
@@ -227,6 +228,35 @@ class DriftPlanRepository implements PlanRepository {
               .write(SlotItemsCompanion(position: Value(i - 1)));
         }
       });
+
+  @override
+  Future<void> clearSlot(SlotId slot) => _deleteSlot(slot);
+
+  @override
+  Future<int> linkFreeTextToRecipe(
+    int recipeId,
+    String title,
+    double servings,
+  ) => _db.transaction(() async {
+    final key = normalizeName(title);
+    if (key.isEmpty) return 0;
+    final candidates = await (_db.select(
+      _db.slotItems,
+    )..where((s) => s.freeText.isNotNull())).get();
+    final ids = [
+      for (final r in candidates)
+        if (normalizeName(r.freeText!) == key) r.id,
+    ];
+    if (ids.isEmpty) return 0;
+    await (_db.update(_db.slotItems)..where((s) => s.id.isIn(ids))).write(
+      SlotItemsCompanion(
+        freeText: const Value(null),
+        recipeId: Value(recipeId),
+        servings: Value(servings),
+      ),
+    );
+    return ids.length;
+  });
 
   @override
   Future<void> setServingsAt(SlotId slot, int index, double servings) =>

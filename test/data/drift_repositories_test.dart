@@ -170,6 +170,37 @@ void main() {
       expect(slots[tue], hasLength(2));
     });
 
+    // Covers: PLAN-9
+    test('clearing a slot removes all its items only', () async {
+      await plan.addItem(lunchMon, const FreeTextItem('A'));
+      await plan.addItem(lunchMon, const FreeTextItem('B'));
+      await plan.addItem(dinnerMon, const FreeTextItem('C'));
+      await plan.clearSlot(lunchMon);
+      final slots = await plan.getRange(week.monday, week.sunday);
+      expect(slots[lunchMon], isNull);
+      expect(slots[dinnerMon], [const FreeTextItem('C')]);
+    });
+
+    // Covers: PLAN-20
+    test('links free-text items with the same normalized title', () async {
+      final id = await recipes.save(sample(title: 'Pasta al Pesto'));
+      await plan.addItem(lunchMon, const FreeTextItem('pasta al pesto'));
+      await plan.addItem(lunchMon, const FreeTextItem('Insalata'));
+      await plan.addItem(dinnerMon, const FreeTextItem(' PASTA  al pesto'));
+      await plan.addItem(dinnerMon, const FreeTextItem('pasta al pesto rosso'));
+      final linked = await plan.linkFreeTextToRecipe(id, 'Pasta al Pesto', 2);
+      expect(linked, 2);
+      final slots = await plan.getRange(week.monday, week.sunday);
+      expect(slots[lunchMon], [
+        RecipeItem(recipeId: id, servings: 2),
+        const FreeTextItem('Insalata'),
+      ]);
+      expect(slots[dinnerMon], [
+        RecipeItem(recipeId: id, servings: 2),
+        const FreeTextItem('pasta al pesto rosso'),
+      ]);
+    });
+
     // Covers: PLAN-10, PLAN-11
     test('duplicate previous week replaces the target week', () async {
       final prevMon = SlotId(week.previous.monday, MealType.dinner);
