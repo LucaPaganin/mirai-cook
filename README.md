@@ -28,8 +28,11 @@ Drift tables or Riverpod providers.
 1. **Analyze & test**: checks generated code is committed, `flutter analyze`, `flutter test`.
 2. **Build APK**: release APK uploaded as the `mirai-cook-apk` artifact
    (Actions → run → Artifacts).
-3. **GitHub release**: on a `v*` tag (e.g. `git tag v0.1.0 && git push origin v0.1.0`)
-   the APK is attached to a new release.
+
+To publish a release, run `.github/workflows/release.yml` by hand:
+**Actions → Release → Run workflow**, pick the branch (usually `main`) and
+enter the version (e.g. `0.1.0`). It runs the tests, builds the APK, creates
+the tag `v0.1.0` on that commit and publishes the GitHub release with the APK.
 
 ### Signing key (recommended)
 
