@@ -62,6 +62,7 @@ void main() {
         ),
       );
       expect(draft.steps, hasLength(3));
+      expect(draft.tags, contains('Primi piatti')); // IMP-10
       expect(await repo.watchAll().first, isEmpty, reason: 'nothing saved');
     },
   );

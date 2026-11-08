@@ -5,11 +5,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../application/providers.dart';
 import '../../domain/recipe.dart';
+import '../../domain/tags.dart';
 import '../import/import_screen.dart';
 import 'recipe_detail_screen.dart';
 import 'recipe_editor_screen.dart';
 
-/// RCP-1: all recipes, searchable by title.
+/// RCP-1, RCP-9: all recipes, searchable by title and filterable by tags.
 class RecipeBookScreen extends ConsumerStatefulWidget {
   const RecipeBookScreen({super.key});
 
@@ -20,9 +21,17 @@ class RecipeBookScreen extends ConsumerStatefulWidget {
 class _RecipeBookScreenState extends ConsumerState<RecipeBookScreen> {
   String _query = '';
 
+  /// Selected tag keys.
+  final _selected = <String>{};
+
   @override
   Widget build(BuildContext context) {
-    final recipes = ref.watch(recipeListProvider(_query));
+    final allTags = ref.watch(recipeTagsProvider).value ?? const <String>[];
+    // Drop selections whose tag no longer exists.
+    _selected.retainAll(allTags.map(tagKey));
+    final tagKeys = (_selected.toList()..sort()).join('|');
+    final recipes = ref.watch(filteredRecipesProvider(_query, tagKeys));
+    final filtering = _query.isNotEmpty || _selected.isNotEmpty;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Ricette'),
@@ -55,13 +64,36 @@ class _RecipeBookScreenState extends ConsumerState<RecipeBookScreen> {
               onChanged: (v) => setState(() => _query = v),
             ),
           ),
+          if (allTags.isNotEmpty)
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Row(
+                children: [
+                  for (final tag in allTags)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: FilterChip(
+                        key: Key('tag-filter-$tag'),
+                        label: Text(tag),
+                        selected: _selected.contains(tagKey(tag)),
+                        onSelected: (on) => setState(() {
+                          on
+                              ? _selected.add(tagKey(tag))
+                              : _selected.remove(tagKey(tag));
+                        }),
+                      ),
+                    ),
+                ],
+              ),
+            ),
           Expanded(
             child: switch (recipes) {
               AsyncData(:final value) when value.isEmpty => Center(
                 child: Text(
-                  _query.isEmpty
-                      ? 'Nessuna ricetta. Aggiungine una con +'
-                      : 'Nessun risultato',
+                  filtering
+                      ? 'Nessun risultato'
+                      : 'Nessuna ricetta. Aggiungine una con +',
                 ),
               ),
               AsyncData(:final value) => ListView.builder(

@@ -119,6 +119,24 @@ Future<List<Suggestion>> slotSuggestions(Ref ref, String query) async {
 Stream<List<RecipeSummary>> recipeList(Ref ref, String query) =>
     ref.watch(recipeRepositoryProvider).watchAll(query: query);
 
+/// Recipe book list filtered by title and tags (RCP-9). [tagKeys] is the
+/// sorted, `|`-joined set of selected tag keys (a value type for the family).
+@riverpod
+Stream<List<RecipeSummary>> filteredRecipes(
+  Ref ref,
+  String query,
+  String tagKeys,
+) => ref
+    .watch(recipeRepositoryProvider)
+    .watchAll(
+      query: query,
+      tags: tagKeys.isEmpty ? const {} : tagKeys.split('|').toSet(),
+    );
+
+@riverpod
+Stream<List<String>> recipeTags(Ref ref) =>
+    ref.watch(recipeRepositoryProvider).watchTags();
+
 @riverpod
 Future<Map<int, RecipeSummary>> recipeIndex(Ref ref) async {
   final all = await ref.watch(recipeListProvider('').future);

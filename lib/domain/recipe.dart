@@ -39,6 +39,7 @@ class Recipe {
     this.steps = const [],
     this.sourceUrl,
     this.thumbnail,
+    this.tags = const [],
   });
 
   final int? id;
@@ -49,6 +50,9 @@ class Recipe {
   final String? sourceUrl;
   final List<int>? thumbnail;
 
+  /// Free-form tags (RCP-7), already cleaned with `cleanTags`.
+  final List<String> tags;
+
   Recipe copyWith({
     int? id,
     String? title,
@@ -57,6 +61,7 @@ class Recipe {
     List<String>? steps,
     String? sourceUrl,
     List<int>? thumbnail,
+    List<String>? tags,
   }) => Recipe(
     id: id ?? this.id,
     title: title ?? this.title,
@@ -65,6 +70,7 @@ class Recipe {
     steps: steps ?? this.steps,
     sourceUrl: sourceUrl ?? this.sourceUrl,
     thumbnail: thumbnail ?? this.thumbnail,
+    tags: tags ?? this.tags,
   );
 }
 

@@ -60,6 +60,16 @@ class RecipeDetailScreen extends ConsumerWidget {
                       ),
                     ),
                   ),
+                if (recipe.tags.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Wrap(
+                      spacing: 8,
+                      children: [
+                        for (final t in recipe.tags) Chip(label: Text(t)),
+                      ],
+                    ),
+                  ),
                 const SizedBox(height: 16),
                 Text(
                   'Ingredienti',

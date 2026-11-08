@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:html/dom.dart' show Document;
 import 'package:html/parser.dart' as html_parser;
 
+import 'tags.dart';
+
 /// Recipe data found in a web page, before review (IMP-3).
 class ExtractedRecipe {
   const ExtractedRecipe({
@@ -11,6 +13,7 @@ class ExtractedRecipe {
     this.ingredients = const [],
     this.steps = const [],
     this.imageUrl,
+    this.tags = const [],
   });
 
   final String title;
@@ -18,6 +21,9 @@ class ExtractedRecipe {
   final List<String> ingredients;
   final List<String> steps;
   final String? imageUrl;
+
+  /// From recipeCategory, recipeCuisine and keywords (IMP-10).
+  final List<String> tags;
 }
 
 /// Extracts schema.org `Recipe` JSON-LD from HTML. Pure Dart.
@@ -48,6 +54,11 @@ class RecipeExtractor {
               .toList(),
           steps: _steps(recipe['recipeInstructions']),
           imageUrl: _image(recipe['image']),
+          tags: cleanTags([
+            for (final field in ['recipeCategory', 'recipeCuisine', 'keywords'])
+              for (final value in _strings(recipe[field]))
+                ...value.split(',').map(_clean),
+          ]),
         );
       }
     }

@@ -8,7 +8,7 @@ String fixture(String name) => File('test/fixtures/$name').readAsStringSync();
 void main() {
   const extractor = RecipeExtractor();
 
-  // Covers: IMP-3
+  // Covers: IMP-3, IMP-10
   test('extracts a plain schema.org Recipe', () {
     final r = extractor.extract(fixture('jsonld_simple.html'))!;
     expect(r.title, 'Pasta alla Norma');
@@ -16,6 +16,13 @@ void main() {
     expect(r.imageUrl, 'https://example.com/img/norma.jpg');
     expect(r.ingredients, hasLength(6));
     expect(r.ingredients.last, "Olio extravergine d'oliva q.b.");
+    expect(r.tags, [
+      'Primi piatti',
+      'Italiana',
+      'pasta',
+      'melanzane',
+      'Veloce',
+    ]);
     expect(r.steps, [
       'Taglia le melanzane a cubetti e friggile.',
       'Prepara il sugo con i pelati.',
@@ -23,12 +30,13 @@ void main() {
     ]);
   });
 
-  // Covers: IMP-3
+  // Covers: IMP-3, IMP-10
   test('finds the Recipe in @graph, flattens sections, decodes entities', () {
     final r = extractor.extract(fixture('jsonld_graph.html'))!;
     expect(r.title, 'Torta di mele & cannella');
     expect(r.servings, 8);
     expect(r.imageUrl, 'https://example.com/torta-1200.jpg');
+    expect(r.tags, ['Dolci', 'Torte', 'torta', 'colazione']);
     expect(r.ingredients.first, '3 uova');
     expect(r.steps, [
       'Monta le uova con lo zucchero.',
@@ -44,6 +52,7 @@ void main() {
     expect(r.servings, 6);
     expect(r.imageUrl, 'https://example.com/m.jpg');
     expect(r.steps, ['Taglia le verdure.', 'Cuoci nel brodo per 30 minuti.']);
+    expect(r.tags, isEmpty);
   });
 
   // Covers: IMP-5

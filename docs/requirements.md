@@ -43,6 +43,9 @@ EARS patterns used:
 - **RCP-4** The app shall always display the original ingredient line to the user.
 - **RCP-5** The app shall allow creating, editing and deleting recipes manually.
 - **RCP-6** If a recipe referenced by slot items is deleted, then the app shall convert those items to free text with the recipe title.
+- **RCP-7** The app shall allow assigning free-form tags to a recipe; tags that differ only by case, accents or spacing shall be the same tag.
+- **RCP-8** When the user edits a recipe's tags, the app shall suggest existing tags matching the typed text.
+- **RCP-9** The recipe book shall show the tags in use as filters; when one or more are selected, the app shall list only recipes having all of them (combined with the title search).
 
 ## 3. Recipe import from URL (IMP)
 
@@ -55,6 +58,7 @@ EARS patterns used:
 - **IMP-7** When an image is available, the app shall store a compressed thumbnail (target ≤ 50 KB) inside the database.
 - **IMP-8** The app shall show every import in the recipe editor, prefilled and unsaved; the recipe shall be persisted only when the user taps "Save", and discarded on "Cancel".
 - **IMP-9** If a recipe with the same source URL already exists, then the app shall tell the user and offer to open the existing recipe instead of importing a duplicate.
+- **IMP-10** When importing, the app shall prefill the recipe's tags from schema.org `recipeCategory`, `recipeCuisine` and `keywords`, if present.
 
 ## 4. Shopping list (SHOP)
 

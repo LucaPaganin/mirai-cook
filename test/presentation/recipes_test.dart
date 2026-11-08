@@ -102,4 +102,64 @@ void main() {
       expect(slots[SlotId(thu, MealType.dinner)]!.single, isA<RecipeItem>());
     },
   );
+
+  // Covers: RCP-7, RCP-8
+  appTest(
+    'tags are added in the editor with suggestions from existing ones',
+    seed: (db) =>
+        DriftRecipeRepository(db)
+            .save(const Recipe(title: 'Pesto', servings: 2, tags: ['Veloce'])),
+    (tester, app) async {
+      await openRecipesTab(tester);
+      await tester.tap(find.byTooltip('Nuova ricetta'));
+      await settle(tester);
+      await tester.enterText(find.byKey(const Key('recipe-title')), 'Pizza');
+      await tester.enterText(find.byKey(const Key('tag-field')), 've');
+      await settle(tester);
+      await tester.tap(find.byKey(const Key('tag-suggestion-Veloce')));
+      await settle(tester);
+      expect(find.byKey(const Key('tag-chip-Veloce')), findsOneWidget);
+      // A typed, unconfirmed tag is saved too.
+      await tester.enterText(find.byKey(const Key('tag-field')), 'forno');
+      await tester.tap(find.byKey(const Key('save-recipe')));
+      await settle(tester);
+      final list = (await tester.runAsync(
+        () => DriftRecipeRepository(app.db).watchAll(query: 'pizza').first,
+      ))!;
+      final pizza = (await tester.runAsync(
+        () => DriftRecipeRepository(app.db).get(list.single.id),
+      ))!;
+      expect(pizza.tags, ['forno', 'Veloce']);
+    },
+  );
+
+  // Covers: RCP-9
+  appTest(
+    'tag filters narrow the recipe book',
+    seed: (db) async {
+      final r = DriftRecipeRepository(db);
+      await r.save(
+        const Recipe(title: 'Pasta', servings: 2, tags: ['Veloce', 'Primi']),
+      );
+      await r.save(
+        const Recipe(title: 'Arrosto', servings: 4, tags: ['Forno']),
+      );
+    },
+    (tester, app) async {
+      await openRecipesTab(tester);
+      expect(find.text('Pasta'), findsOneWidget);
+      expect(find.text('Arrosto'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('tag-filter-Forno')));
+      await settle(tester);
+      expect(find.text('Pasta'), findsNothing);
+      expect(find.text('Arrosto'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('tag-filter-Veloce')));
+      await settle(tester);
+      expect(find.text('Nessun risultato'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('tag-filter-Forno')));
+      await settle(tester);
+      expect(find.text('Pasta'), findsOneWidget);
+      expect(find.text('Arrosto'), findsNothing);
+    },
+  );
 }
