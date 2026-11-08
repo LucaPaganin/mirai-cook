@@ -2,12 +2,17 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
-List<File> dartFiles(String dir) =>
-    Directory(dir)
-        .listSync(recursive: true)
-        .whereType<File>()
-        .where((f) => f.path.endsWith('.dart') && !f.path.endsWith('.g.dart'))
-        .toList();
+/// Dart sources under [dir]; empty if the directory does not exist (e.g.
+/// `integration_test/` before the first integration test is added).
+List<File> dartFiles(String dir) {
+  final d = Directory(dir);
+  if (!d.existsSync()) return const [];
+  return d
+      .listSync(recursive: true)
+      .whereType<File>()
+      .where((f) => f.path.endsWith('.dart') && !f.path.endsWith('.g.dart'))
+      .toList();
+}
 
 /// Source without comment lines.
 String code(File f) =>
@@ -45,11 +50,7 @@ void main() {
   test('system time is read only by SystemClock', () {
     for (final f in dartFiles('lib')) {
       if (f.path.endsWith('system_clock.dart')) continue;
-      expect(
-        code(f),
-        isNot(contains('DateTime.now()')),
-        reason: f.path,
-      );
+      expect(code(f), isNot(contains('DateTime.now()')), reason: f.path);
     }
   });
 
