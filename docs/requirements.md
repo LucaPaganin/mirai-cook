@@ -32,6 +32,8 @@ EARS patterns used:
 - **PLAN-16** When the user swipes a slot item in the bottom sheet or taps its remove button, the app shall remove that item.
 - **PLAN-17** Where a recipe item's servings differ from the default servings, the app shall show the servings on the slot (e.g. "×4").
 - **PLAN-18** The app shall provide a "default servings" setting, default 1.
+- **PLAN-19** When the user confirms typed text in the slot field that equals a recipe title (ignoring case, accents and spacing), the app shall add a reference to that recipe instead of free text.
+- **PLAN-20** When a recipe is saved, the app shall turn existing free-text slot items whose text equals the recipe title (same comparison as PLAN-19) into references to that recipe, with the default servings.
 
 ## 2. Recipe book (RCP)
 

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../application/providers.dart';
 import '../../domain/calendar.dart';
 import '../../domain/meal.dart';
+import '../../domain/recipe_matching.dart';
 import '../../domain/suggestion_ranker.dart';
 import '../common/format.dart';
 import 'week_screen.dart';
@@ -50,10 +51,18 @@ class _SlotSheetState extends ConsumerState<SlotSheet> {
     }
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     final text = _text.text.trim();
     if (text.isEmpty) return;
-    _add(FreeTextItem(text));
+    // PLAN-19: text equal to a recipe title becomes a recipe reference.
+    final recipes = await ref.read(recipeIndexProvider.future);
+    final recipeId = matchRecipeByTitle(text, recipes.values);
+    if (recipeId == null) {
+      await _add(FreeTextItem(text));
+    } else {
+      final servings = await ref.read(defaultServingsProvider.future);
+      await _add(RecipeItem(recipeId: recipeId, servings: servings));
+    }
   }
 
   @override

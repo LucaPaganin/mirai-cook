@@ -201,4 +201,30 @@ void main() {
       );
     },
   );
+
+  // Covers: PLAN-19
+  appTest(
+    'typing a recipe title links the recipe',
+    seed: (db) =>
+        DriftRecipeRepository(db)
+            .save(const Recipe(title: 'Lasagna', servings: 6)),
+    (tester, app) async {
+      await tester.tap(slotFinder(thuLunch));
+      await settle(tester);
+      await tester.enterText(find.byKey(const Key('slot-field')), ' lasagna ');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await settle(tester);
+      final slots = (await tester.runAsync(
+        () => DriftPlanRepository(app.db).getRange(thursday, thursday),
+      ))!;
+      expect(slots[thuLunch]!.single, isA<RecipeItem>());
+      expect(
+        find.descendant(
+          of: slotFinder(thuLunch),
+          matching: find.text('Lasagna'),
+        ),
+        findsOneWidget,
+      );
+    },
+  );
 }
