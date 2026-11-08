@@ -1,0 +1,69 @@
+name: Release
+
+# Manual release: Actions → Release → Run workflow → enter the version.
+# Runs the tests, builds the APK, creates the tag vX.Y.Z on the selected
+# commit and publishes a GitHub release with the APK attached.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Versione (es. 0.1.0), senza "v"
+        required: true
+        type: string
+      prerelease:
+        description: Segna come pre-release
+        type: boolean
+        default: false
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Check format and that the tag is new
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Version must look like 1.2.3 (got '$VERSION')"
+            exit 1
+          fi
+          if git ls-remote --exit-code --tags origin "refs/tags/v$VERSION" >/dev/null; then
+            echo "::error::Tag v$VERSION already exists"
+            exit 1
+          fi
+
+  build:
+    name: Test & build
+    needs: validate
+    uses: ./.github/workflows/android.yml
+    with:
+      build-name: ${{ inputs.version }}
+    secrets: inherit
+
+  publish:
+    name: Publish release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: mirai-cook-apk
+          path: dist
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ inputs.version }}
+          target_commitish: ${{ github.sha }}
+          name: Mirai Cook ${{ inputs.version }}
+          prerelease: ${{ inputs.prerelease }}
+          generate_release_notes: true
+          files: dist/*.apk
+          fail_on_unmatched_files: true
