@@ -1,0 +1,1138 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
+
+part of 'providers.dart';
+
+// **************************************************************************
+// RiverpodGenerator
+// **************************************************************************
+
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// ignore_for_file: type=lint, type=warning
+
+@ProviderFor(clock)
+final clockProvider = ClockProvider._();
+
+final class ClockProvider extends $FunctionalProvider<Clock, Clock, Clock>
+    with $Provider<Clock> {
+  ClockProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'clockProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$clockHash();
+
+  @$internal
+  @override
+  $ProviderElement<Clock> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  Clock create(Ref ref) {
+    return clock(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(Clock value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<Clock>(value),
+    );
+  }
+}
+
+String _$clockHash() => r'55214d6539f7396a3ae1aa23b06eea79fdac0ebe';
+
+@ProviderFor(appDatabase)
+final appDatabaseProvider = AppDatabaseProvider._();
+
+final class AppDatabaseProvider
+    extends $FunctionalProvider<AppDatabase, AppDatabase, AppDatabase>
+    with $Provider<AppDatabase> {
+  AppDatabaseProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'appDatabaseProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$appDatabaseHash();
+
+  @$internal
+  @override
+  $ProviderElement<AppDatabase> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  AppDatabase create(Ref ref) {
+    return appDatabase(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(AppDatabase value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<AppDatabase>(value),
+    );
+  }
+}
+
+String _$appDatabaseHash() => r'3fd194f32f2ccc407850ed4af05e409077cc5879';
+
+@ProviderFor(recipeRepository)
+final recipeRepositoryProvider = RecipeRepositoryProvider._();
+
+final class RecipeRepositoryProvider
+    extends
+        $FunctionalProvider<
+          RecipeRepository,
+          RecipeRepository,
+          RecipeRepository
+        >
+    with $Provider<RecipeRepository> {
+  RecipeRepositoryProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'recipeRepositoryProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$recipeRepositoryHash();
+
+  @$internal
+  @override
+  $ProviderElement<RecipeRepository> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  RecipeRepository create(Ref ref) {
+    return recipeRepository(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(RecipeRepository value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<RecipeRepository>(value),
+    );
+  }
+}
+
+String _$recipeRepositoryHash() => r'bf804706006f4fff734de390bf228dcff9c84af0';
+
+@ProviderFor(planRepository)
+final planRepositoryProvider = PlanRepositoryProvider._();
+
+final class PlanRepositoryProvider
+    extends $FunctionalProvider<PlanRepository, PlanRepository, PlanRepository>
+    with $Provider<PlanRepository> {
+  PlanRepositoryProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'planRepositoryProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$planRepositoryHash();
+
+  @$internal
+  @override
+  $ProviderElement<PlanRepository> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  PlanRepository create(Ref ref) {
+    return planRepository(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(PlanRepository value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<PlanRepository>(value),
+    );
+  }
+}
+
+String _$planRepositoryHash() => r'76b2bc11bdd4e75648a6199305d5e2e1bf97d7b6';
+
+@ProviderFor(shoppingRepository)
+final shoppingRepositoryProvider = ShoppingRepositoryProvider._();
+
+final class ShoppingRepositoryProvider
+    extends
+        $FunctionalProvider<
+          ShoppingRepository,
+          ShoppingRepository,
+          ShoppingRepository
+        >
+    with $Provider<ShoppingRepository> {
+  ShoppingRepositoryProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'shoppingRepositoryProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$shoppingRepositoryHash();
+
+  @$internal
+  @override
+  $ProviderElement<ShoppingRepository> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  ShoppingRepository create(Ref ref) {
+    return shoppingRepository(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(ShoppingRepository value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<ShoppingRepository>(value),
+    );
+  }
+}
+
+String _$shoppingRepositoryHash() =>
+    r'fb7aae6d7196d183b09ab5681360e7b038e1206a';
+
+@ProviderFor(settingsRepository)
+final settingsRepositoryProvider = SettingsRepositoryProvider._();
+
+final class SettingsRepositoryProvider
+    extends
+        $FunctionalProvider<
+          SettingsRepository,
+          SettingsRepository,
+          SettingsRepository
+        >
+    with $Provider<SettingsRepository> {
+  SettingsRepositoryProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'settingsRepositoryProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$settingsRepositoryHash();
+
+  @$internal
+  @override
+  $ProviderElement<SettingsRepository> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  SettingsRepository create(Ref ref) {
+    return settingsRepository(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(SettingsRepository value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<SettingsRepository>(value),
+    );
+  }
+}
+
+String _$settingsRepositoryHash() =>
+    r'0eda22c9c7a5e68c8661bf58b528d73264ef9a19';
+
+/// Today's date from the injected clock (PLAN-13).
+
+@ProviderFor(today)
+final todayProvider = TodayProvider._();
+
+/// Today's date from the injected clock (PLAN-13).
+
+final class TodayProvider
+    extends $FunctionalProvider<CalendarDate, CalendarDate, CalendarDate>
+    with $Provider<CalendarDate> {
+  /// Today's date from the injected clock (PLAN-13).
+  TodayProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'todayProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$todayHash();
+
+  @$internal
+  @override
+  $ProviderElement<CalendarDate> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  CalendarDate create(Ref ref) {
+    return today(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(CalendarDate value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<CalendarDate>(value),
+    );
+  }
+}
+
+String _$todayHash() => r'677702840b37fd29639106957cdad9aed2301d31';
+
+@ProviderFor(currentWeek)
+final currentWeekProvider = CurrentWeekProvider._();
+
+final class CurrentWeekProvider extends $FunctionalProvider<Week, Week, Week>
+    with $Provider<Week> {
+  CurrentWeekProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'currentWeekProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$currentWeekHash();
+
+  @$internal
+  @override
+  $ProviderElement<Week> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  Week create(Ref ref) {
+    return currentWeek(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(Week value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<Week>(value),
+    );
+  }
+}
+
+String _$currentWeekHash() => r'0982603595c802af977a73c1656460c8eedacf82';
+
+@ProviderFor(weekPlan)
+final weekPlanProvider = WeekPlanFamily._();
+
+final class WeekPlanProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<Map<SlotId, List<SlotItem>>>,
+          Map<SlotId, List<SlotItem>>,
+          Stream<Map<SlotId, List<SlotItem>>>
+        >
+    with
+        $FutureModifier<Map<SlotId, List<SlotItem>>>,
+        $StreamProvider<Map<SlotId, List<SlotItem>>> {
+  WeekPlanProvider._({
+    required WeekPlanFamily super.from,
+    required Week super.argument,
+  }) : super(
+         retry: null,
+         name: r'weekPlanProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$weekPlanHash();
+
+  @override
+  String toString() {
+    return r'weekPlanProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $StreamProviderElement<Map<SlotId, List<SlotItem>>> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<Map<SlotId, List<SlotItem>>> create(Ref ref) {
+    final argument = this.argument as Week;
+    return weekPlan(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is WeekPlanProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$weekPlanHash() => r'd32167c40cd3736a1b7ba5488213cd8a090074a3';
+
+final class WeekPlanFamily extends $Family
+    with $FunctionalFamilyOverride<Stream<Map<SlotId, List<SlotItem>>>, Week> {
+  WeekPlanFamily._()
+    : super(
+        retry: null,
+        name: r'weekPlanProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  WeekPlanProvider call(Week week) =>
+      WeekPlanProvider._(argument: week, from: this);
+
+  @override
+  String toString() => r'weekPlanProvider';
+}
+
+/// Default servings for new recipe items (PLAN-12, PLAN-18).
+
+@ProviderFor(defaultServings)
+final defaultServingsProvider = DefaultServingsProvider._();
+
+/// Default servings for new recipe items (PLAN-12, PLAN-18).
+
+final class DefaultServingsProvider
+    extends $FunctionalProvider<AsyncValue<double>, double, Stream<double>>
+    with $FutureModifier<double>, $StreamProvider<double> {
+  /// Default servings for new recipe items (PLAN-12, PLAN-18).
+  DefaultServingsProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'defaultServingsProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$defaultServingsHash();
+
+  @$internal
+  @override
+  $StreamProviderElement<double> $createElement($ProviderPointer pointer) =>
+      $StreamProviderElement(pointer);
+
+  @override
+  Stream<double> create(Ref ref) {
+    return defaultServings(ref);
+  }
+}
+
+String _$defaultServingsHash() => r'30ef17047341ae31143998b5368edd975f4950bf';
+
+@ProviderFor(slotSuggestions)
+final slotSuggestionsProvider = SlotSuggestionsFamily._();
+
+final class SlotSuggestionsProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<Suggestion>>,
+          List<Suggestion>,
+          FutureOr<List<Suggestion>>
+        >
+    with $FutureModifier<List<Suggestion>>, $FutureProvider<List<Suggestion>> {
+  SlotSuggestionsProvider._({
+    required SlotSuggestionsFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'slotSuggestionsProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$slotSuggestionsHash();
+
+  @override
+  String toString() {
+    return r'slotSuggestionsProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $FutureProviderElement<List<Suggestion>> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<List<Suggestion>> create(Ref ref) {
+    final argument = this.argument as String;
+    return slotSuggestions(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is SlotSuggestionsProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$slotSuggestionsHash() => r'00cef6b72501da8c4904ae49c02309b5626c37f8';
+
+final class SlotSuggestionsFamily extends $Family
+    with $FunctionalFamilyOverride<FutureOr<List<Suggestion>>, String> {
+  SlotSuggestionsFamily._()
+    : super(
+        retry: null,
+        name: r'slotSuggestionsProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  SlotSuggestionsProvider call(String query) =>
+      SlotSuggestionsProvider._(argument: query, from: this);
+
+  @override
+  String toString() => r'slotSuggestionsProvider';
+}
+
+@ProviderFor(recipeList)
+final recipeListProvider = RecipeListFamily._();
+
+final class RecipeListProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<RecipeSummary>>,
+          List<RecipeSummary>,
+          Stream<List<RecipeSummary>>
+        >
+    with
+        $FutureModifier<List<RecipeSummary>>,
+        $StreamProvider<List<RecipeSummary>> {
+  RecipeListProvider._({
+    required RecipeListFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'recipeListProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$recipeListHash();
+
+  @override
+  String toString() {
+    return r'recipeListProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $StreamProviderElement<List<RecipeSummary>> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<List<RecipeSummary>> create(Ref ref) {
+    final argument = this.argument as String;
+    return recipeList(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is RecipeListProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$recipeListHash() => r'ed2b1578a5e12f822abd2f72b67117cc3540a46c';
+
+final class RecipeListFamily extends $Family
+    with $FunctionalFamilyOverride<Stream<List<RecipeSummary>>, String> {
+  RecipeListFamily._()
+    : super(
+        retry: null,
+        name: r'recipeListProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  RecipeListProvider call(String query) =>
+      RecipeListProvider._(argument: query, from: this);
+
+  @override
+  String toString() => r'recipeListProvider';
+}
+
+@ProviderFor(recipeIndex)
+final recipeIndexProvider = RecipeIndexProvider._();
+
+final class RecipeIndexProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<Map<int, RecipeSummary>>,
+          Map<int, RecipeSummary>,
+          FutureOr<Map<int, RecipeSummary>>
+        >
+    with
+        $FutureModifier<Map<int, RecipeSummary>>,
+        $FutureProvider<Map<int, RecipeSummary>> {
+  RecipeIndexProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'recipeIndexProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$recipeIndexHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<Map<int, RecipeSummary>> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<Map<int, RecipeSummary>> create(Ref ref) {
+    return recipeIndex(ref);
+  }
+}
+
+String _$recipeIndexHash() => r'feef8ead17ee4e6c41b2b9bddaaf44b327c41263';
+
+@ProviderFor(recipe)
+final recipeProvider = RecipeFamily._();
+
+final class RecipeProvider
+    extends $FunctionalProvider<AsyncValue<Recipe?>, Recipe?, Stream<Recipe?>>
+    with $FutureModifier<Recipe?>, $StreamProvider<Recipe?> {
+  RecipeProvider._({
+    required RecipeFamily super.from,
+    required int super.argument,
+  }) : super(
+         retry: null,
+         name: r'recipeProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$recipeHash();
+
+  @override
+  String toString() {
+    return r'recipeProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $StreamProviderElement<Recipe?> $createElement($ProviderPointer pointer) =>
+      $StreamProviderElement(pointer);
+
+  @override
+  Stream<Recipe?> create(Ref ref) {
+    final argument = this.argument as int;
+    return recipe(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is RecipeProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$recipeHash() => r'0b618956b25c45b135dc1d17d30cfe0ac84deaa1';
+
+final class RecipeFamily extends $Family
+    with $FunctionalFamilyOverride<Stream<Recipe?>, int> {
+  RecipeFamily._()
+    : super(
+        retry: null,
+        name: r'recipeProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  RecipeProvider call(int id) => RecipeProvider._(argument: id, from: this);
+
+  @override
+  String toString() => r'recipeProvider';
+}
+
+@ProviderFor(manualItems)
+final manualItemsProvider = ManualItemsFamily._();
+
+final class ManualItemsProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<ManualItem>>,
+          List<ManualItem>,
+          Stream<List<ManualItem>>
+        >
+    with $FutureModifier<List<ManualItem>>, $StreamProvider<List<ManualItem>> {
+  ManualItemsProvider._({
+    required ManualItemsFamily super.from,
+    required Week super.argument,
+  }) : super(
+         retry: null,
+         name: r'manualItemsProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$manualItemsHash();
+
+  @override
+  String toString() {
+    return r'manualItemsProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $StreamProviderElement<List<ManualItem>> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<List<ManualItem>> create(Ref ref) {
+    final argument = this.argument as Week;
+    return manualItems(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is ManualItemsProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$manualItemsHash() => r'91570b5469b413ceefa33e81509e49356382a124';
+
+final class ManualItemsFamily extends $Family
+    with $FunctionalFamilyOverride<Stream<List<ManualItem>>, Week> {
+  ManualItemsFamily._()
+    : super(
+        retry: null,
+        name: r'manualItemsProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  ManualItemsProvider call(Week week) =>
+      ManualItemsProvider._(argument: week, from: this);
+
+  @override
+  String toString() => r'manualItemsProvider';
+}
+
+@ProviderFor(shoppingChecks)
+final shoppingChecksProvider = ShoppingChecksFamily._();
+
+final class ShoppingChecksProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<Map<String, double?>>,
+          Map<String, double?>,
+          Stream<Map<String, double?>>
+        >
+    with
+        $FutureModifier<Map<String, double?>>,
+        $StreamProvider<Map<String, double?>> {
+  ShoppingChecksProvider._({
+    required ShoppingChecksFamily super.from,
+    required Week super.argument,
+  }) : super(
+         retry: null,
+         name: r'shoppingChecksProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$shoppingChecksHash();
+
+  @override
+  String toString() {
+    return r'shoppingChecksProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $StreamProviderElement<Map<String, double?>> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<Map<String, double?>> create(Ref ref) {
+    final argument = this.argument as Week;
+    return shoppingChecks(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is ShoppingChecksProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$shoppingChecksHash() => r'fdb6bc629af15438e9053da71e5f360527ec90b4';
+
+final class ShoppingChecksFamily extends $Family
+    with $FunctionalFamilyOverride<Stream<Map<String, double?>>, Week> {
+  ShoppingChecksFamily._()
+    : super(
+        retry: null,
+        name: r'shoppingChecksProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  ShoppingChecksProvider call(Week week) =>
+      ShoppingChecksProvider._(argument: week, from: this);
+
+  @override
+  String toString() => r'shoppingChecksProvider';
+}
+
+@ProviderFor(ingredientAliases)
+final ingredientAliasesProvider = IngredientAliasesProvider._();
+
+final class IngredientAliasesProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<Map<String, String>>,
+          Map<String, String>,
+          Stream<Map<String, String>>
+        >
+    with
+        $FutureModifier<Map<String, String>>,
+        $StreamProvider<Map<String, String>> {
+  IngredientAliasesProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'ingredientAliasesProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$ingredientAliasesHash();
+
+  @$internal
+  @override
+  $StreamProviderElement<Map<String, String>> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<Map<String, String>> create(Ref ref) {
+    return ingredientAliases(ref);
+  }
+}
+
+String _$ingredientAliasesHash() => r'b26e756e77657ebc853c621fe4fe0a3a832467e8';
+
+@ProviderFor(sectionOverrides)
+final sectionOverridesProvider = SectionOverridesProvider._();
+
+final class SectionOverridesProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<Map<String, StoreSection>>,
+          Map<String, StoreSection>,
+          Stream<Map<String, StoreSection>>
+        >
+    with
+        $FutureModifier<Map<String, StoreSection>>,
+        $StreamProvider<Map<String, StoreSection>> {
+  SectionOverridesProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'sectionOverridesProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$sectionOverridesHash();
+
+  @$internal
+  @override
+  $StreamProviderElement<Map<String, StoreSection>> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<Map<String, StoreSection>> create(Ref ref) {
+    return sectionOverrides(ref);
+  }
+}
+
+String _$sectionOverridesHash() => r'3180ebd390320e694cf85d264a88f71fa7796a0b';
+
+/// Recipe-derived entries, recomputed whenever the plan, recipes or aliases
+/// change (SHOP-1..4, SHOP-7, SHOP-9).
+
+@ProviderFor(shoppingEntries)
+final shoppingEntriesProvider = ShoppingEntriesFamily._();
+
+/// Recipe-derived entries, recomputed whenever the plan, recipes or aliases
+/// change (SHOP-1..4, SHOP-7, SHOP-9).
+
+final class ShoppingEntriesProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<ShoppingEntry>>,
+          List<ShoppingEntry>,
+          FutureOr<List<ShoppingEntry>>
+        >
+    with
+        $FutureModifier<List<ShoppingEntry>>,
+        $FutureProvider<List<ShoppingEntry>> {
+  /// Recipe-derived entries, recomputed whenever the plan, recipes or aliases
+  /// change (SHOP-1..4, SHOP-7, SHOP-9).
+  ShoppingEntriesProvider._({
+    required ShoppingEntriesFamily super.from,
+    required Week super.argument,
+  }) : super(
+         retry: null,
+         name: r'shoppingEntriesProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$shoppingEntriesHash();
+
+  @override
+  String toString() {
+    return r'shoppingEntriesProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $FutureProviderElement<List<ShoppingEntry>> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<List<ShoppingEntry>> create(Ref ref) {
+    final argument = this.argument as Week;
+    return shoppingEntries(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is ShoppingEntriesProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$shoppingEntriesHash() => r'7d1888ba25159a74bb18c40e90ea26c7f3d464e5';
+
+/// Recipe-derived entries, recomputed whenever the plan, recipes or aliases
+/// change (SHOP-1..4, SHOP-7, SHOP-9).
+
+final class ShoppingEntriesFamily extends $Family
+    with $FunctionalFamilyOverride<FutureOr<List<ShoppingEntry>>, Week> {
+  ShoppingEntriesFamily._()
+    : super(
+        retry: null,
+        name: r'shoppingEntriesProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  /// Recipe-derived entries, recomputed whenever the plan, recipes or aliases
+  /// change (SHOP-1..4, SHOP-7, SHOP-9).
+
+  ShoppingEntriesProvider call(Week week) =>
+      ShoppingEntriesProvider._(argument: week, from: this);
+
+  @override
+  String toString() => r'shoppingEntriesProvider';
+}
+
+@ProviderFor(shoppingList)
+final shoppingListProvider = ShoppingListFamily._();
+
+final class ShoppingListProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<ShoppingRow>>,
+          List<ShoppingRow>,
+          FutureOr<List<ShoppingRow>>
+        >
+    with
+        $FutureModifier<List<ShoppingRow>>,
+        $FutureProvider<List<ShoppingRow>> {
+  ShoppingListProvider._({
+    required ShoppingListFamily super.from,
+    required Week super.argument,
+  }) : super(
+         retry: null,
+         name: r'shoppingListProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$shoppingListHash();
+
+  @override
+  String toString() {
+    return r'shoppingListProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $FutureProviderElement<List<ShoppingRow>> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<List<ShoppingRow>> create(Ref ref) {
+    final argument = this.argument as Week;
+    return shoppingList(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is ShoppingListProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$shoppingListHash() => r'16fc2034dc0a074ef176a232740f9bb9e5f68d75';
+
+final class ShoppingListFamily extends $Family
+    with $FunctionalFamilyOverride<FutureOr<List<ShoppingRow>>, Week> {
+  ShoppingListFamily._()
+    : super(
+        retry: null,
+        name: r'shoppingListProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  ShoppingListProvider call(Week week) =>
+      ShoppingListProvider._(argument: week, from: this);
+
+  @override
+  String toString() => r'shoppingListProvider';
+}
