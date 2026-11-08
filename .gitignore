@@ -119,3 +119,7 @@ app.*.symbols
 !/dev/ci/**/Gemfile.lock
 # Commit the lockfile for the app
 !pubspec.lock
+
+# IDE
+.idea/
+*.iml
