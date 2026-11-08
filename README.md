@@ -29,10 +29,17 @@ Drift tables or Riverpod providers.
 2. **Build APK**: release APK uploaded as the `mirai-cook-apk` artifact
    (Actions → run → Artifacts).
 
-To publish a release, run `.github/workflows/release.yml` by hand:
-**Actions → Release → Run workflow**, pick the branch (usually `main`) and
-enter the version (e.g. `0.1.0`). It runs the tests, builds the APK, creates
-the tag `v0.1.0` on that commit and publishes the GitHub release with the APK.
+3. **Automatic release** on every push to `main` (e.g. a merged PR): the
+   version is the latest `vX.Y.Z` tag with the patch bumped (`0.1.0` →
+   `0.1.1`); the tag and GitHub release with the APK are created by the
+   workflow. Tags created this way don't trigger further workflow runs.
+
+To jump to a specific version (e.g. `0.2.0`), run `.github/workflows/release.yml`
+by hand: **Actions → Release → Run workflow**, pick `main` and enter the
+version. Following automatic releases continue from there (`0.2.1`, …).
+
+The Android version code is the commit count, so every new build on `main`
+installs over the previous one (given the same signing key).
 
 ### Signing key (recommended)
 
