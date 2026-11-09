@@ -6,8 +6,15 @@ import '../domain/store_section.dart';
 import '../domain/suggestion_ranker.dart';
 
 abstract interface class RecipeRepository {
-  /// Recipes whose title matches [query] (case-insensitive), by title (RCP-1).
-  Stream<List<RecipeSummary>> watchAll({String query = ''});
+  /// Recipes whose title matches [query] (case-insensitive) and that have
+  /// all [tags], ordered by title (RCP-1, RCP-9).
+  Stream<List<RecipeSummary>> watchAll({
+    String query = '',
+    Set<String> tags = const {},
+  });
+
+  /// Names of the tags used by at least one recipe, sorted (RCP-8, RCP-9).
+  Stream<List<String>> watchTags();
   Stream<Recipe?> watch(int id);
   Future<Recipe?> get(int id);
   Future<List<Recipe>> getMany(Iterable<int> ids);
@@ -87,4 +94,7 @@ abstract final class SettingKeys {
   static const backupAccount = 'backup_account';
   static const lastBackupError = 'last_backup_error';
   static const onboardingDone = 'onboarding_done';
+
+  /// 'system' (default), 'light' or 'dark' (UI-1).
+  static const themeMode = 'theme_mode';
 }

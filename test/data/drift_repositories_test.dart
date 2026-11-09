@@ -103,6 +103,69 @@ void main() {
       expect(slots[lunchMon], [const FreeTextItem('Carbonara')]);
     });
 
+    // Covers: RCP-7
+    test('saves tags, merging spellings of the same tag', () async {
+      final a = await recipes.save(
+        sample(title: 'A').copyWith(tags: ['Veloce', 'veloce', ' Forno ']),
+      );
+      final b = await recipes.save(
+        sample(title: 'B').copyWith(tags: ['VELOCE', 'Vegetariano']),
+      );
+      expect((await recipes.get(a))!.tags, ['Forno', 'Veloce']);
+      expect((await recipes.get(b))!.tags, ['Vegetariano', 'Veloce']);
+      expect(await recipes.watchTags().first, [
+        'Forno',
+        'Vegetariano',
+        'Veloce',
+      ]);
+    });
+
+    // Covers: RCP-7
+    test('unused tags disappear on edit and delete', () async {
+      final a = await recipes.save(
+        sample(title: 'A').copyWith(tags: ['Forno']),
+      );
+      final b = await recipes.save(
+        sample(title: 'B').copyWith(tags: ['Dolci']),
+      );
+      await recipes.save((await recipes.get(a))!.copyWith(tags: ['Veloce']));
+      await recipes.delete(b);
+      expect(await recipes.watchTags().first, ['Veloce']);
+    });
+
+    // Covers: RCP-9
+    test('filters by all selected tags, combined with the search', () async {
+      await recipes.save(
+        sample(title: 'Pasta').copyWith(tags: ['Veloce', 'Primi']),
+      );
+      await recipes.save(sample(title: 'Pizza').copyWith(tags: ['Veloce']));
+      await recipes.save(sample(title: 'Pesto').copyWith(tags: ['Primi']));
+      Future<List<String>> titles(String q, Set<String> tags) async => [
+        for (final r in await recipes.watchAll(query: q, tags: tags).first)
+          r.title,
+      ];
+      expect(await titles('', {'veloce'}), ['Pasta', 'Pizza']);
+      expect(await titles('', {'Veloce', 'PRIMI'}), ['Pasta']);
+      expect(await titles('pi', {'veloce'}), ['Pizza']);
+      expect(await titles('', {'inesistente'}), isEmpty);
+    });
+
+    // Covers: RCP-9
+    test('the filtered list updates when tags change', () async {
+      final id = await recipes.save(sample(title: 'Pasta'));
+      final stream = recipes.watchAll(tags: {'veloce'});
+      final updates = <List<String>>[];
+      final sub = stream.listen(
+        (l) => updates.add([for (final r in l) r.title]),
+      );
+      await pumpEventQueue();
+      await recipes.save((await recipes.get(id))!.copyWith(tags: ['Veloce']));
+      await pumpEventQueue();
+      await sub.cancel();
+      expect(updates.first, isEmpty);
+      expect(updates.last, ['Pasta']);
+    });
+
     // Covers: IMP-9
     test('finds a recipe by source URL', () async {
       await recipes.save(sample(url: 'https://x.it/c'));

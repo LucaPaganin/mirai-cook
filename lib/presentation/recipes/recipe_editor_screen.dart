@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../application/providers.dart';
 import '../../domain/ingredient_parser.dart';
 import '../../domain/recipe.dart';
+import '../../domain/tags.dart';
 import '../common/format.dart';
+import 'tag_editor.dart';
 
 /// Opens the editor; returns the saved recipe id, or null if cancelled.
 Future<int?> openRecipeEditor(
@@ -44,11 +46,13 @@ class _RecipeEditorScreenState extends ConsumerState<RecipeEditorScreen> {
     text: widget.initial.steps.join('\n'),
   );
   late final _url = TextEditingController(text: widget.initial.sourceUrl);
+  late var _tags = [...widget.initial.tags];
+  final _tagText = TextEditingController();
   bool _saving = false;
 
   @override
   void dispose() {
-    for (final c in [_title, _servings, _ingredients, _steps, _url]) {
+    for (final c in [_title, _servings, _ingredients, _steps, _url, _tagText]) {
       c.dispose();
     }
     super.dispose();
@@ -69,6 +73,8 @@ class _RecipeEditorScreenState extends ConsumerState<RecipeEditorScreen> {
       thumbnail: widget.initial.thumbnail,
       sourceUrl: url.isEmpty ? null : url,
       steps: _lines(_steps.text),
+      // A tag typed but not confirmed is kept too.
+      tags: cleanTags([..._tags, _tagText.text]),
       ingredients: [
         for (final line in _lines(_ingredients.text))
           () {
@@ -131,6 +137,13 @@ class _RecipeEditorScreenState extends ConsumerState<RecipeEditorScreen> {
                 final n = double.tryParse((v ?? '').replaceAll(',', '.'));
                 return n == null || n <= 0 ? 'Numero non valido' : null;
               },
+            ),
+            const SizedBox(height: 12),
+            TagEditor(
+              tags: _tags,
+              known: ref.watch(recipeTagsProvider).value ?? const [],
+              controller: _tagText,
+              onChanged: (tags) => setState(() => _tags = tags),
             ),
             const SizedBox(height: 12),
             TextFormField(

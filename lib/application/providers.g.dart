@@ -477,6 +477,45 @@ final class WeekPlanFamily extends $Family
   String toString() => r'weekPlanProvider';
 }
 
+/// Theme mode from settings (UI-1).
+
+@ProviderFor(themeMode)
+final themeModeProvider = ThemeModeProvider._();
+
+/// Theme mode from settings (UI-1).
+
+final class ThemeModeProvider
+    extends
+        $FunctionalProvider<AsyncValue<ThemeMode>, ThemeMode, Stream<ThemeMode>>
+    with $FutureModifier<ThemeMode>, $StreamProvider<ThemeMode> {
+  /// Theme mode from settings (UI-1).
+  ThemeModeProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'themeModeProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$themeModeHash();
+
+  @$internal
+  @override
+  $StreamProviderElement<ThemeMode> $createElement($ProviderPointer pointer) =>
+      $StreamProviderElement(pointer);
+
+  @override
+  Stream<ThemeMode> create(Ref ref) {
+    return themeMode(ref);
+  }
+}
+
+String _$themeModeHash() => r'42527fd9e5f3348fb912b9ca77907a5b47ec08fe';
+
 /// Default servings for new recipe items (PLAN-12, PLAN-18).
 
 @ProviderFor(defaultServings)
@@ -666,6 +705,140 @@ final class RecipeListFamily extends $Family
   @override
   String toString() => r'recipeListProvider';
 }
+
+/// Recipe book list filtered by title and tags (RCP-9). [tagKeys] is the
+/// sorted, `|`-joined set of selected tag keys (a value type for the family).
+
+@ProviderFor(filteredRecipes)
+final filteredRecipesProvider = FilteredRecipesFamily._();
+
+/// Recipe book list filtered by title and tags (RCP-9). [tagKeys] is the
+/// sorted, `|`-joined set of selected tag keys (a value type for the family).
+
+final class FilteredRecipesProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<RecipeSummary>>,
+          List<RecipeSummary>,
+          Stream<List<RecipeSummary>>
+        >
+    with
+        $FutureModifier<List<RecipeSummary>>,
+        $StreamProvider<List<RecipeSummary>> {
+  /// Recipe book list filtered by title and tags (RCP-9). [tagKeys] is the
+  /// sorted, `|`-joined set of selected tag keys (a value type for the family).
+  FilteredRecipesProvider._({
+    required FilteredRecipesFamily super.from,
+    required (String, String) super.argument,
+  }) : super(
+         retry: null,
+         name: r'filteredRecipesProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$filteredRecipesHash();
+
+  @override
+  String toString() {
+    return r'filteredRecipesProvider'
+        ''
+        '$argument';
+  }
+
+  @$internal
+  @override
+  $StreamProviderElement<List<RecipeSummary>> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<List<RecipeSummary>> create(Ref ref) {
+    final argument = this.argument as (String, String);
+    return filteredRecipes(ref, argument.$1, argument.$2);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is FilteredRecipesProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$filteredRecipesHash() => r'c9daf07b103ec7c90fd36130c84b55d5879dba17';
+
+/// Recipe book list filtered by title and tags (RCP-9). [tagKeys] is the
+/// sorted, `|`-joined set of selected tag keys (a value type for the family).
+
+final class FilteredRecipesFamily extends $Family
+    with
+        $FunctionalFamilyOverride<
+          Stream<List<RecipeSummary>>,
+          (String, String)
+        > {
+  FilteredRecipesFamily._()
+    : super(
+        retry: null,
+        name: r'filteredRecipesProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  /// Recipe book list filtered by title and tags (RCP-9). [tagKeys] is the
+  /// sorted, `|`-joined set of selected tag keys (a value type for the family).
+
+  FilteredRecipesProvider call(String query, String tagKeys) =>
+      FilteredRecipesProvider._(argument: (query, tagKeys), from: this);
+
+  @override
+  String toString() => r'filteredRecipesProvider';
+}
+
+@ProviderFor(recipeTags)
+final recipeTagsProvider = RecipeTagsProvider._();
+
+final class RecipeTagsProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<String>>,
+          List<String>,
+          Stream<List<String>>
+        >
+    with $FutureModifier<List<String>>, $StreamProvider<List<String>> {
+  RecipeTagsProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'recipeTagsProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$recipeTagsHash();
+
+  @$internal
+  @override
+  $StreamProviderElement<List<String>> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<List<String>> create(Ref ref) {
+    return recipeTags(ref);
+  }
+}
+
+String _$recipeTagsHash() => r'bd4551a479fbc582b6b5bbbc9fb38ff935af8656';
 
 @ProviderFor(recipeIndex)
 final recipeIndexProvider = RecipeIndexProvider._();

@@ -98,3 +98,22 @@ class Settings extends Table {
   @override
   Set<Column> get primaryKey => {key};
 }
+
+/// Recipe tags (RCP-7). [key] is the normalized name used for identity.
+@DataClassName('TagRow')
+class Tags extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get name => text()();
+  TextColumn get key => text().unique()();
+}
+
+@DataClassName('RecipeTagRow')
+class RecipeTags extends Table {
+  IntColumn get recipeId =>
+      integer().references(Recipes, #id, onDelete: KeyAction.cascade)();
+  IntColumn get tagId =>
+      integer().references(Tags, #id, onDelete: KeyAction.cascade)();
+
+  @override
+  Set<Column> get primaryKey => {recipeId, tagId};
+}

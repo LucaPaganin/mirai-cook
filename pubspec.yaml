@@ -35,6 +35,19 @@ dev_dependencies:
   riverpod_generator: ^4.0.10
   drift_dev: ^2.35.2
   meta: ^1.19.0
+  flutter_launcher_icons: ^0.14.4
 
 flutter:
   uses-material-design: true
+
+# App icon: regenerate with `dart run flutter_launcher_icons` after changing
+# assets/icon/ (source drawing: assets/icon/pot.svg).
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: assets/icon/icon.png
+  adaptive_icon_background: "#E07A3F"
+  adaptive_icon_foreground: assets/icon/icon_foreground.png
+  # The drawing already sits inside the safe zone: no extra inset.
+  adaptive_icon_foreground_inset: 0
+  min_sdk_android: 21

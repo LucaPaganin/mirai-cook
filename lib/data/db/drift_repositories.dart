@@ -9,6 +9,7 @@ import '../../domain/recipe.dart';
 import '../../domain/shopping.dart';
 import '../../domain/store_section.dart';
 import '../../domain/suggestion_ranker.dart';
+import '../../domain/tags.dart';
 import '../repositories.dart';
 import 'app_database.dart';
 
@@ -18,7 +19,10 @@ class DriftRecipeRepository implements RecipeRepository {
   final AppDatabase _db;
 
   @override
-  Stream<List<RecipeSummary>> watchAll({String query = ''}) {
+  Stream<List<RecipeSummary>> watchAll({
+    String query = '',
+    Set<String> tags = const {},
+  }) {
     final q = _db.select(_db.recipes)
       ..orderBy([
         (r) => OrderingTerm(expression: r.title.collate(Collate.noCase)),
@@ -29,12 +33,39 @@ class DriftRecipeRepository implements RecipeRepository {
         (r) => r.title.like('%${_escapeLike(trimmed)}%', escapeChar: r'\'),
       );
     }
+    final keys = tags.map(tagKey).where((k) => k.isNotEmpty).toSet();
+    if (keys.isNotEmpty) {
+      // RCP-9: recipes having all selected tags.
+      final distinctKeys = _db.tags.key.count(distinct: true);
+      final withAllTags = _db.selectOnly(_db.recipeTags)
+        ..join([
+          innerJoin(_db.tags, _db.tags.id.equalsExp(_db.recipeTags.tagId)),
+        ])
+        ..addColumns([_db.recipeTags.recipeId])
+        ..where(_db.tags.key.isIn(keys))
+        ..groupBy([
+          _db.recipeTags.recipeId,
+        ], having: distinctKeys.equals(keys.length));
+      q.where((r) => r.id.isInQuery(withAllTags));
+    }
     return q.watch().map(
       (rows) => [
         for (final r in rows)
           RecipeSummary(id: r.id, title: r.title, thumbnail: r.thumbnail),
       ],
     );
+  }
+
+  @override
+  Stream<List<String>> watchTags() {
+    final q = _db.select(_db.tags)
+      ..where(
+        (t) => t.id.isInQuery(
+          _db.selectOnly(_db.recipeTags)..addColumns([_db.recipeTags.tagId]),
+        ),
+      )
+      ..orderBy([(t) => OrderingTerm(expression: t.key)]);
+    return q.watch().map((rows) => [for (final t in rows) t.name]);
   }
 
   @override
@@ -108,8 +139,40 @@ class DriftRecipeRepository implements RecipeRepository {
           ),
       ]);
     });
+    await _saveTags(id, recipe.tags);
     return id;
   });
+
+  /// Replaces the recipe's tags, reusing existing tags by key (RCP-7).
+  Future<void> _saveTags(int recipeId, List<String> tags) async {
+    await (_db.delete(
+      _db.recipeTags,
+    )..where((rt) => rt.recipeId.equals(recipeId))).go();
+    for (final name in cleanTags(tags)) {
+      final key = tagKey(name);
+      final existing = await (_db.select(
+        _db.tags,
+      )..where((t) => t.key.equals(key))).getSingleOrNull();
+      final tagId =
+          existing?.id ??
+          await _db
+              .into(_db.tags)
+              .insert(TagsCompanion.insert(name: name, key: key));
+      await _db
+          .into(_db.recipeTags)
+          .insert(RecipeTagsCompanion.insert(recipeId: recipeId, tagId: tagId));
+    }
+    await _deleteUnusedTags();
+  }
+
+  Future<void> _deleteUnusedTags() =>
+      (_db.delete(_db.tags)..where(
+            (t) => t.id.isNotInQuery(
+              _db.selectOnly(_db.recipeTags)
+                ..addColumns([_db.recipeTags.tagId]),
+            ),
+          ))
+          .go();
 
   @override
   Future<void> delete(int id) => _db.transaction(() async {
@@ -127,6 +190,7 @@ class DriftRecipeRepository implements RecipeRepository {
       ),
     );
     await (_db.delete(_db.recipes)..where((r) => r.id.equals(id))).go();
+    await _deleteUnusedTags();
   });
 
   @override
@@ -145,10 +209,28 @@ class DriftRecipeRepository implements RecipeRepository {
               ..where((l) => l.recipeId.equals(row.id))
               ..orderBy([(l) => OrderingTerm(expression: l.position)]))
             .get();
-    return _toDomain(row, lines);
+    final tags =
+        await (_db.select(_db.tags).join([
+                innerJoin(
+                  _db.recipeTags,
+                  _db.recipeTags.tagId.equalsExp(_db.tags.id),
+                ),
+              ])
+              ..where(_db.recipeTags.recipeId.equals(row.id))
+              ..orderBy([OrderingTerm(expression: _db.tags.key)]))
+            .map((r) => r.readTable(_db.tags).name)
+            .get();
+    return _toDomain(row, lines, tags);
   }
 
-  Recipe _toDomain(RecipeRow row, List<IngredientLineRow> lines) => Recipe(
+  /// [tags] are loaded only for single-recipe reads; lists and shopping
+  /// aggregation don't need them.
+  Recipe _toDomain(
+    RecipeRow row,
+    List<IngredientLineRow> lines, [
+    List<String> tags = const [],
+  ]) => Recipe(
+    tags: tags,
     id: row.id,
     title: row.title,
     servings: row.servings,

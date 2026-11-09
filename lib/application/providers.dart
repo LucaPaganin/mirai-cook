@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:drift_flutter/drift_flutter.dart';
+import 'package:flutter/material.dart' show ThemeMode;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../data/backup/backup_target.dart';
@@ -90,6 +91,19 @@ Week currentWeek(Ref ref) => Week.containing(ref.watch(todayProvider));
 Stream<Map<SlotId, List<SlotItem>>> weekPlan(Ref ref, Week week) =>
     ref.watch(planRepositoryProvider).watchRange(week.monday, week.sunday);
 
+/// Theme mode from settings (UI-1).
+@riverpod
+Stream<ThemeMode> themeMode(Ref ref) => ref
+    .watch(settingsRepositoryProvider)
+    .watch(SettingKeys.themeMode)
+    .map(
+      (v) => switch (v) {
+        'light' => ThemeMode.light,
+        'dark' => ThemeMode.dark,
+        _ => ThemeMode.system,
+      },
+    );
+
 /// Default servings for new recipe items (PLAN-12, PLAN-18).
 @riverpod
 Stream<double> defaultServings(Ref ref) => ref
@@ -118,6 +132,24 @@ Future<List<Suggestion>> slotSuggestions(Ref ref, String query) async {
 @riverpod
 Stream<List<RecipeSummary>> recipeList(Ref ref, String query) =>
     ref.watch(recipeRepositoryProvider).watchAll(query: query);
+
+/// Recipe book list filtered by title and tags (RCP-9). [tagKeys] is the
+/// sorted, `|`-joined set of selected tag keys (a value type for the family).
+@riverpod
+Stream<List<RecipeSummary>> filteredRecipes(
+  Ref ref,
+  String query,
+  String tagKeys,
+) => ref
+    .watch(recipeRepositoryProvider)
+    .watchAll(
+      query: query,
+      tags: tagKeys.isEmpty ? const {} : tagKeys.split('|').toSet(),
+    );
+
+@riverpod
+Stream<List<String>> recipeTags(Ref ref) =>
+    ref.watch(recipeRepositoryProvider).watchTags();
 
 @riverpod
 Future<Map<int, RecipeSummary>> recipeIndex(Ref ref) async {

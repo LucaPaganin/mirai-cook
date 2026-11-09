@@ -114,6 +114,7 @@ class RecipeImporter {
         servings: extracted.servings ?? defaultServings,
         sourceUrl: urlText,
         steps: extracted.steps,
+        tags: extracted.tags, // IMP-10
         thumbnail: await _thumbnail(url, extracted.imageUrl),
         ingredients: [
           for (final line in extracted.ingredients)

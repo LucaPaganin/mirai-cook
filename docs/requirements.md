@@ -43,6 +43,9 @@ EARS patterns used:
 - **RCP-4** The app shall always display the original ingredient line to the user.
 - **RCP-5** The app shall allow creating, editing and deleting recipes manually.
 - **RCP-6** If a recipe referenced by slot items is deleted, then the app shall convert those items to free text with the recipe title.
+- **RCP-7** The app shall allow assigning free-form tags to a recipe; tags that differ only by case, accents or spacing shall be the same tag.
+- **RCP-8** When the user edits a recipe's tags, the app shall suggest existing tags matching the typed text.
+- **RCP-9** The recipe book shall show the tags in use as filters; when one or more are selected, the app shall list only recipes having all of them (combined with the title search).
 
 ## 3. Recipe import from URL (IMP)
 
@@ -55,6 +58,7 @@ EARS patterns used:
 - **IMP-7** When an image is available, the app shall store a compressed thumbnail (target ≤ 50 KB) inside the database.
 - **IMP-8** The app shall show every import in the recipe editor, prefilled and unsaved; the recipe shall be persisted only when the user taps "Save", and discarded on "Cancel".
 - **IMP-9** If a recipe with the same source URL already exists, then the app shall tell the user and offer to open the existing recipe instead of importing a duplicate.
+- **IMP-10** When importing, the app shall prefill the recipe's tags from schema.org `recipeCategory`, `recipeCuisine` and `keywords`, if present.
 
 ## 4. Shopping list (SHOP)
 
@@ -94,14 +98,19 @@ EARS patterns used:
 - **DATA-16** Before replacing the database on restore, the app shall create a local snapshot of the current database so the restore can be undone.
 - **DATA-17** When the user disconnects the Google account, the app shall leave existing snapshots on Drive.
 
-## 6. Non-functional (NFR)
+## 6. Appearance (UI)
+
+- **UI-1** The app shall provide light and dark themes and a setting to follow the system theme (default), or force light or dark.
+- **UI-2** When the theme setting changes, the app shall apply it immediately, without restarting.
+
+## 7. Non-functional (NFR)
 
 - **NFR-1** Domain logic (ingredient parsing, quantity scaling, list aggregation, suggestion ranking) shall be pure Dart with no Flutter or Riverpod dependency.
 - **NFR-2** All external dependencies (database, HTTP, Google Drive, clock, background scheduler) shall be injected behind interfaces.
 - **NFR-3** Tests shall not perform network calls or depend on system time.
 - **NFR-4** Every requirement ID shall be referenced by at least one test (`// Covers: PLAN-8`).
 
-## 7. Ingredient parser (PARSE)
+## 8. Ingredient parser (PARSE)
 
 - **PARSE-1** The parser shall support Italian ingredient lines only in the MVP.
 - **PARSE-2** The parser shall recognise integers and decimals with comma or dot (`200`, `1,5`, `0.5`).
