@@ -128,12 +128,32 @@ jobs:
           echo "code=$(git rev-list --count HEAD)" >> "$GITHUB_OUTPUT"
           echo "Version $name (code $(git rev-list --count HEAD)), release=$release"
 
+      # The sqlite3 build hook downloads prebuilt Android libraries from
+      # GitHub releases; keep them across runs (the hook reuses files whose
+      # hash matches) so a GitHub download outage doesn't block releases.
+      - uses: actions/cache@v4
+        with:
+          path: .dart_tool/hooks_runner/shared/sqlite3
+          key: sqlite3-native-${{ hashFiles('pubspec.lock') }}
+
       - name: Build release APK
-        run: >
-          flutter build apk --release
-          --build-name=${{ steps.version.outputs.name }}
-          --build-number=${{ steps.version.outputs.code }}
-          --dart-define=GOOGLE_SERVER_CLIENT_ID=${{ vars.GOOGLE_SERVER_CLIENT_ID }}
+        env:
+          BUILD_NAME: ${{ steps.version.outputs.name }}
+          BUILD_NUMBER: ${{ steps.version.outputs.code }}
+          GOOGLE_SERVER_CLIENT_ID: ${{ vars.GOOGLE_SERVER_CLIENT_ID }}
+        run: |
+          # Retry: native asset downloads from GitHub can fail transiently.
+          for attempt in 1 2 3; do
+            if flutter build apk --release \
+                --build-name="$BUILD_NAME" \
+                --build-number="$BUILD_NUMBER" \
+                --dart-define=GOOGLE_SERVER_CLIENT_ID="$GOOGLE_SERVER_CLIENT_ID"; then
+              exit 0
+            fi
+            echo "::warning::Build attempt $attempt failed, retrying in 60s"
+            sleep 60
+          done
+          exit 1
 
       - name: Rename APK
         run: |
