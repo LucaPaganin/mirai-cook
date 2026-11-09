@@ -44,4 +44,5 @@ integration_test/
 - Widget tests use `appTest(...)` from `test/presentation/helpers.dart`: full app, in-memory Drift DB, fixed clock (Thu 5 Nov 2026), fakes for HTTP, share intents, Drive and the scheduler.
 - Seed data with `appTest(..., seed: (db) async {...})`. Multiple DB writes inside one `tester.runAsync` after the app is pumped can deadlock against Drift stream queries in the fake zone.
 - Use `settle(tester)` instead of `pumpAndSettle` (a focused text field's cursor never settles).
+- Host tests on Linux use the system SQLite (`hooks.user_defines.sqlite3` in `pubspec.yaml`), so they don't download native binaries from GitHub; Android builds still bundle the downloaded library.
 - `test/architecture_test.dart` enforces the layering rules and that every requirement ID has a `// Covers:` test.
