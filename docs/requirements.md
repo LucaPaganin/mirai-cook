@@ -106,7 +106,7 @@ EARS patterns used:
 ## 7. Non-functional (NFR)
 
 - **NFR-1** Domain logic (ingredient parsing, quantity scaling, list aggregation, suggestion ranking) shall be pure Dart with no Flutter or Riverpod dependency.
-- **NFR-2** All external dependencies (database, HTTP, Google Drive, clock, background scheduler) shall be injected behind interfaces.
+- **NFR-2** All external dependencies (database, HTTP, Google Drive, clock, background scheduler, AI provider, secure storage) shall be injected behind interfaces.
 - **NFR-3** Tests shall not perform network calls or depend on system time.
 - **NFR-4** Every requirement ID shall be referenced by at least one test (`// Covers: PLAN-8`).
 
@@ -119,12 +119,31 @@ EARS patterns used:
 - **PARSE-5** The parser shall recognise the unit before or after the quantity, with or without a space (`g 200 farina`, `200 g di farina`, `200g farina`), stripping the "di"/"d'" connector from the name.
 - **PARSE-6** The parser shall treat "q.b.", "un pizzico", "a piacere" and any unrecognised line as having no quantity.
 
+## 9. AI import from videos and social posts (AI)
+
+- **AI-1** The app shall recognise as YouTube video URLs `youtube.com/watch?v=…`, `youtube.com/shorts/…`, `m.youtube.com/…` and `youtu.be/…`, and as Instagram post URLs `instagram.com/p/…` and `instagram.com/reel/…` (also `/reels/…`), ignoring tracking query parameters.
+- **AI-2** Where an AI key is configured, when the user imports a YouTube video URL, the app shall send the video URL to the AI extractor, which analyses the video (images and audio) and its description.
+- **AI-3** Where an AI key is configured, when the user imports an Instagram post URL, the app shall fetch the page, read its caption (`og:description`) and send the caption to the AI extractor; the video itself shall not be downloaded.
+- **AI-4** The AI extractor shall return the same fields as a JSON-LD import (title, servings, ingredient lines, steps, tags); the app shall run the ingredient parser on each line (IMP-4) and open the result in the unsaved recipe editor (IMP-8), with the source URL set.
+- **AI-5** The app shall ask the AI to write each ingredient on its own line, in Italian, with quantity and unit as stated in the source (e.g. "200 g farina"), and to leave out quantities and servings that the source does not state rather than guess them.
+- **AI-6** When the recipe editor shows an AI import, the app shall show a notice that the content was extracted automatically and should be checked before saving.
+- **AI-7** If the AI extractor finds no recipe in the content, then the app shall open the unsaved recipe editor prefilled with the video or post title and source URL, and tell the user that no recipe was found.
+- **AI-8** If the AI request fails (network error, invalid key, quota exceeded, timeout), then the app shall show the reason with "Retry" and "Continue manually" (as IMP-6).
+- **AI-9** Where an AI key is configured, the app shall allow starting an import by pasting the recipe text (e.g. a caption or video description), with an optional source URL; the text shall be sent to the AI extractor.
+- **AI-10** When an AI import comes from YouTube, the app shall use the video thumbnail as the recipe image; when it comes from Instagram, the page's `og:image`. The thumbnail shall be stored as in IMP-7; a missing image shall not fail the import.
+- **AI-11** The app shall provide a setting to enter, replace and delete the AI provider key; the key shall be stored in the platform secure storage, never in the database, so it is never included in backups.
+- **AI-12** While no AI key is configured, the app shall import YouTube and Instagram URLs like any other URL (IMP-3 to IMP-6) and shall show in the editor that AI import can be enabled in settings.
+- **AI-13** The app shall send to the AI provider only the URL or text being imported and the extraction instructions, never other data from the database.
+- **AI-14** The duplicate check (IMP-9) shall apply to AI imports, comparing the canonical video or post URL (AI-1), so that the same video shared with different tracking parameters is recognised.
+
 ---
 
 ## Out of scope for MVP
-Multi-user sync, iOS release, LLM-based import, automatic meal plan generation, nutrition tracking, JSON export,
+Multi-user sync, iOS release, automatic meal plan generation, nutrition tracking, JSON export,
 configurable first day of week, configurable/extra meal slots, shopping list over arbitrary date ranges,
-cross-dimension unit conversion (cups, densities), English/imperial ingredient parsing, custom/reorderable store sections.
+cross-dimension unit conversion (cups, densities), English/imperial ingredient parsing, custom/reorderable store sections,
+AI import from platforms other than YouTube and Instagram (e.g. TikTok), downloading videos, AI fallback for web pages
+without JSON-LD, choosing the AI provider or model in the UI.
 
 ## Data model notes
 - Slot items: `slot_item(date, meal_type, position, free_text | recipe_id, servings)`.
@@ -136,6 +155,8 @@ cross-dimension unit conversion (cups, densities), English/imperial ingredient p
 - Imported recipes without a yield default to 4 servings.
 - Identical unquantified lines (e.g. "Sale q.b." from two recipes) are shown once (SHOP-4: no quantities are combined).
 - Restore keeps up to 3 local safety snapshots (DATA-16).
+- AI provider (AI-2..AI-13): Google Gemini via its REST API with a user-supplied AI Studio key; Gemini accepts public YouTube URLs as video input. The provider sits behind `RecipeAiExtractor`, so it can be replaced without touching the importer.
+- Canonical URLs (AI-1, AI-14): `https://www.youtube.com/watch?v=<id>` for every YouTube form (shorts included), `https://www.instagram.com/p/<code>/` or `.../reel/<code>/` for Instagram.
 
 ## Open points
 - None.

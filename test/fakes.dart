@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:mirai_cook/data/ai/recipe_ai_extractor.dart';
 import 'package:mirai_cook/data/background_scheduler.dart';
 import 'package:mirai_cook/data/backup/backup_target.dart';
 import 'package:mirai_cook/data/http_client.dart';
+import 'package:mirai_cook/data/secret_store.dart';
 import 'package:mirai_cook/data/share_intent.dart';
 import 'package:mirai_cook/data/thumbnailer.dart';
 import 'package:mirai_cook/domain/clock.dart';
@@ -141,4 +143,42 @@ class FakeBackgroundScheduler implements BackgroundScheduler {
 
   @override
   Future<void> scheduleDailyBackup() async => scheduled++;
+}
+
+class InMemorySecretStore implements SecretStore {
+  InMemorySecretStore([Map<String, String>? values]) : values = values ?? {};
+
+  final Map<String, String> values;
+
+  @override
+  Future<String?> read(String key) async => values[key];
+
+  @override
+  Future<void> write(String key, String value) async => values[key] = value;
+
+  @override
+  Future<void> delete(String key) async => values.remove(key);
+}
+
+/// Answers with [result] (or throws [error]) and records every input.
+class FakeRecipeAiExtractor implements RecipeAiExtractor {
+  FakeRecipeAiExtractor({this.configured = true, this.result});
+
+  bool configured;
+  AiExtraction? result;
+  AiExtractionException? error;
+  final inputs = <AiInput>[];
+
+  @override
+  Future<bool> isConfigured() async => configured;
+
+  @override
+  Future<AiExtraction> extract(AiInput input) async {
+    inputs.add(input);
+    if (!configured) {
+      throw const AiExtractionException(AiFailureKind.notConfigured);
+    }
+    if (error != null) throw error!;
+    return result ?? const AiNoRecipe();
+  }
 }
