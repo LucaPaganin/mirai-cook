@@ -1,12 +1,14 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:mirai_cook/data/background_scheduler.dart';
-import 'package:mirai_cook/data/backup/backup_target.dart';
-import 'package:mirai_cook/data/http_client.dart';
-import 'package:mirai_cook/data/share_intent.dart';
-import 'package:mirai_cook/data/thumbnailer.dart';
-import 'package:mirai_cook/domain/clock.dart';
+import 'package:mirai_cook/application/ports/background_scheduler.dart';
+import 'package:mirai_cook/application/ports/backup.dart';
+import 'package:mirai_cook/application/ports/http_client.dart';
+import 'package:mirai_cook/application/ports/share_intent.dart';
+import 'package:mirai_cook/application/ports/shopping_list_exporter.dart';
+import 'package:mirai_cook/application/ports/thumbnailer.dart';
+import 'package:mirai_cook/domain/shopping_note.dart';
+import 'package:mirai_cook/application/ports/clock.dart';
 
 class FixedClock implements Clock {
   FixedClock(this.value);
@@ -141,4 +143,17 @@ class FakeBackgroundScheduler implements BackgroundScheduler {
 
   @override
   Future<void> scheduleDailyBackup() async => scheduled++;
+}
+
+class FakeShoppingListExporter implements ShoppingListExporter {
+  FakeShoppingListExporter([this.result = const ExportDone()]);
+
+  ExportResult result;
+  final exported = <ShoppingNote>[];
+
+  @override
+  Future<ExportResult> export(ShoppingNote note) async {
+    exported.add(note);
+    return result;
+  }
 }

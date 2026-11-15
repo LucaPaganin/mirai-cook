@@ -16,10 +16,10 @@ Drift tables or Riverpod providers.
 
 ### Schema changes
 
-1. Change the tables in `lib/data/db/tables.dart` and bump `schemaVersion`.
+1. Change the tables in `lib/adapters/drift/tables.dart` and bump `schemaVersion`.
 2. Add the migration step in `AppDatabase.migration`.
 3. `dart run drift_dev make-migrations` — exports `drift_schemas/` and
-   generates step-by-step migration tests under `test/data/generated_migrations/`.
+   generates step-by-step migration tests under `test/adapters/drift/generated_migrations/`.
 
 ## CI and releases
 

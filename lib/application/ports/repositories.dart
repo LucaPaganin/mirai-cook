@@ -1,9 +1,9 @@
-import '../domain/calendar.dart';
-import '../domain/meal.dart';
-import '../domain/recipe.dart';
-import '../domain/shopping.dart';
-import '../domain/store_section.dart';
-import '../domain/suggestion_ranker.dart';
+import '../../domain/calendar.dart';
+import '../../domain/meal.dart';
+import '../../domain/recipe.dart';
+import '../../domain/shopping.dart';
+import '../../domain/store_section.dart';
+import '../../domain/suggestion_ranker.dart';
 
 abstract interface class RecipeRepository {
   /// Recipes whose title matches [query] (case-insensitive) and that have

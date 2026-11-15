@@ -5,7 +5,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../application/providers.dart';
-import '../data/repositories.dart';
+import '../application/ports/repositories.dart';
 import 'backup/onboarding_screen.dart';
 import 'import/import_screen.dart';
 

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mirai_cook/data/db/drift_repositories.dart';
+import 'package:mirai_cook/adapters/drift/drift_repositories.dart';
 import 'package:mirai_cook/domain/calendar.dart';
 import 'package:mirai_cook/domain/meal.dart';
 import 'package:mirai_cook/domain/recipe.dart';

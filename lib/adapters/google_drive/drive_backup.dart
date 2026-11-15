@@ -5,8 +5,8 @@ import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:googleapis_auth/googleapis_auth.dart' as auth;
 import 'package:http/http.dart' as http;
 
-import '../../domain/clock.dart';
-import 'backup_target.dart';
+import '../../application/ports/clock.dart';
+import '../../application/ports/backup.dart';
 
 /// Snapshots in a visible "Mirai Cook backup" Drive folder, using only the
 /// `drive.file` scope (DATA-6).

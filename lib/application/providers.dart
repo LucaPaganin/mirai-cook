@@ -1,29 +1,37 @@
 import 'dart:io';
 
-import 'package:drift_flutter/drift_flutter.dart';
 import 'package:flutter/material.dart' show ThemeMode;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../data/backup/backup_target.dart';
-import '../data/backup/drive_backup.dart';
-import '../data/backup/local_database_files.dart';
-import '../data/background_scheduler.dart';
-import '../data/db/app_database.dart';
-import '../data/db/drift_repositories.dart';
-import '../data/http_client.dart';
-import '../data/repositories.dart';
-import '../data/share_intent.dart';
-import '../data/system_clock.dart';
-import '../data/thumbnailer.dart';
+import 'ports/backup.dart';
+import '../adapters/android/share_intent_channel.dart';
+import '../adapters/system/image_thumbnailer.dart';
+import '../adapters/http/package_http_client.dart';
+import '../adapters/google_drive/drive_backup.dart';
+import '../adapters/system/local_database_files.dart';
+import 'ports/background_scheduler.dart';
+import '../adapters/android/share_sheet_exporter.dart';
+import '../adapters/drift/app_database.dart';
+import '../adapters/drift/drift_local_database.dart';
+import '../adapters/drift/open_database.dart';
+import '../adapters/google_keep/google_keep_exporter.dart';
+import '../adapters/drift/drift_repositories.dart';
+import 'ports/http_client.dart';
+import 'ports/repositories.dart';
+import 'ports/share_intent.dart';
+import '../adapters/system/system_clock.dart';
+import 'ports/thumbnailer.dart';
 import '../domain/calendar.dart';
-import '../domain/clock.dart';
+import 'ports/clock.dart';
 import '../domain/meal.dart';
 import '../domain/recipe.dart';
 import '../domain/shopping.dart';
 import '../domain/store_section.dart';
 import '../domain/suggestion_ranker.dart';
 import 'backup_service.dart';
+import 'ports/shopping_list_exporter.dart';
 import 'recipe_importer.dart';
+import 'shopping_export.dart';
 
 part 'providers.g.dart';
 
@@ -37,15 +45,6 @@ Clock clock(Ref ref) => const SystemClock();
 @Riverpod(keepAlive: true)
 DatabaseFiles databaseFiles(Ref ref) => const LocalDatabaseFiles();
 
-AppDatabase openAppDatabase(DatabaseFiles files) => AppDatabase(
-  driftDatabase(
-    name: 'mirai_cook',
-    native: DriftNativeOptions(
-      databasePath: () async => (await files.databaseFile()).path,
-    ),
-  ),
-);
-
 @Riverpod(keepAlive: true)
 AppDatabase appDatabase(Ref ref) {
   final db = openAppDatabase(ref.watch(databaseFilesProvider));
@@ -58,6 +57,11 @@ AppDatabase appDatabase(Ref ref) {
   });
   return db;
 }
+
+/// The live database as seen by the backup use case.
+@Riverpod(keepAlive: true)
+LocalDatabase localDatabase(Ref ref) =>
+    DriftLocalDatabase(ref.watch(appDatabaseProvider));
 
 @Riverpod(keepAlive: true)
 RecipeRepository recipeRepository(Ref ref) =>
@@ -216,6 +220,22 @@ Future<List<ShoppingRow>> shoppingList(Ref ref, Week week) async {
       .build(entries: entries, manualItems: manual, checks: checks);
 }
 
+/// EXP-1: Google Keep.
+@Riverpod(keepAlive: true)
+ShoppingListExporter keepExporter(Ref ref) => const GoogleKeepExporter();
+
+/// EXP-3: any app, through the system share sheet.
+@Riverpod(keepAlive: true)
+ShoppingListExporter shareSheetExporter(Ref ref) => const ShareSheetExporter();
+
+@riverpod
+ShoppingListExport keepExport(Ref ref) =>
+    ShoppingListExport(ref.watch(keepExporterProvider));
+
+@riverpod
+ShoppingListExport shareSheetExport(Ref ref) =>
+    ShoppingListExport(ref.watch(shareSheetExporterProvider));
+
 // ---------------------------------------------------------------------------
 // Import
 // ---------------------------------------------------------------------------
@@ -255,7 +275,7 @@ BackgroundScheduler? backgroundScheduler(Ref ref) => null;
 
 @Riverpod(keepAlive: true)
 BackupService backupService(Ref ref) => BackupService(
-  db: ref.watch(appDatabaseProvider),
+  db: ref.watch(localDatabaseProvider),
   settings: ref.watch(settingsRepositoryProvider),
   clock: ref.watch(clockProvider),
   files: ref.watch(databaseFilesProvider),
@@ -264,7 +284,7 @@ BackupService backupService(Ref ref) => BackupService(
 @Riverpod(keepAlive: true)
 ChangeTracker changeTracker(Ref ref) {
   final tracker = ChangeTracker(
-    ref.watch(appDatabaseProvider),
+    ref.watch(localDatabaseProvider),
     ref.watch(backupServiceProvider),
   )..start();
   ref.onDispose(tracker.stop);

@@ -46,3 +46,42 @@ abstract interface class DatabaseFiles {
   Future<Directory> tempDirectory();
   Future<Directory> localSnapshotsDirectory();
 }
+
+sealed class SnapshotValidation {
+  const SnapshotValidation();
+}
+
+class SnapshotValid extends SnapshotValidation {
+  const SnapshotValid(this.schemaVersion);
+  final int schemaVersion;
+}
+
+class SnapshotInvalid extends SnapshotValidation {
+  const SnapshotInvalid(this.reason);
+  final String reason;
+}
+
+/// DATA-10: made by a newer app version.
+class SnapshotTooNew extends SnapshotValidation {
+  const SnapshotTooNew(this.schemaVersion, this.supported);
+  final int schemaVersion;
+  final int supported;
+}
+
+/// The live local database, as seen by the backup use case. Implemented by
+/// the Drift adapter, so [BackupService] knows nothing about SQLite.
+abstract interface class LocalDatabase {
+  int get schemaVersion;
+
+  /// Writes a consistent copy of the live database to [file] (DATA-5).
+  Future<void> snapshotTo(File file);
+
+  /// Checks integrity, expected tables and schema version of a snapshot
+  /// file (DATA-8, DATA-10).
+  SnapshotValidation validateSnapshot(File file);
+
+  Future<int> recipeCount();
+
+  /// Emits whenever user data (anything but settings) is written (DATA-3).
+  Stream<void> get dataChanges;
+}

@@ -1,22 +1,8 @@
-import 'dart:convert';
-
 import 'package:http/http.dart' as http;
 
-class HttpResponse {
-  const HttpResponse(this.statusCode, this.bodyBytes);
+import '../../application/ports/http_client.dart';
 
-  final int statusCode;
-  final List<int> bodyBytes;
-
-  bool get isOk => statusCode >= 200 && statusCode < 300;
-  String get body => utf8.decode(bodyBytes, allowMalformed: true);
-}
-
-/// Network access, behind an interface so tests never hit the network.
-abstract interface class HttpClient {
-  Future<HttpResponse> get(Uri url);
-}
-
+/// [HttpClient] adapter on `package:http`.
 class PackageHttpClient implements HttpClient {
   PackageHttpClient([http.Client? client]) : _client = client ?? http.Client();
 

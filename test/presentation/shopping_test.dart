@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mirai_cook/data/db/app_database.dart';
-import 'package:mirai_cook/data/db/drift_repositories.dart';
+import 'package:mirai_cook/adapters/drift/app_database.dart';
+import 'package:mirai_cook/adapters/drift/drift_repositories.dart';
+import 'package:mirai_cook/application/ports/shopping_list_exporter.dart';
 import 'package:mirai_cook/domain/calendar.dart';
 import 'package:mirai_cook/domain/meal.dart';
 import 'package:mirai_cook/domain/recipe.dart';
@@ -120,5 +121,56 @@ void main() {
     await tester.tap(find.byTooltip('Settimana successiva'));
     await settle(tester);
     expect(find.text('La lista è vuota'), findsOneWidget);
+  });
+
+  // Covers: EXP-1, EXP-2
+  appTest('exports what is left to buy to Google Keep', seed: seedWeek, (
+    tester,
+    app,
+  ) async {
+    await openShopping(tester);
+    await tester.tap(find.byKey(const Key('row-item:farina|mass')));
+    await settle(tester);
+    await tester.tap(find.byTooltip('Esporta in Google Keep'));
+    await settle(tester);
+    final note = app.keep.exported.single;
+    expect(note.title, 'Spesa 2 nov – 8 nov');
+    expect(note.lines, ['uova 3', 'Sale q.b.']);
+    expect(app.shareSheet.exported, isEmpty);
+  });
+
+  // Covers: EXP-2
+  appTest('says so when everything is checked', seed: seedWeek, (
+    tester,
+    app,
+  ) async {
+    await openShopping(tester);
+    for (final key in ['row-item:farina|mass', 'row-item:uova|count']) {
+      await tester.tap(find.byKey(Key(key)));
+      await settle(tester);
+    }
+    await tester.tap(find.text('Sale q.b.'));
+    await settle(tester);
+    await tester.tap(find.byTooltip('Esporta in Google Keep'));
+    await settle(tester);
+    expect(find.textContaining('Niente da esportare'), findsOneWidget);
+    expect(app.keep.exported, isEmpty);
+  });
+
+  // Covers: EXP-3
+  appTest('without Keep, offers the share sheet', seed: seedWeek, (
+    tester,
+    app,
+  ) async {
+    app.keep.result = const ExportUnavailable();
+    await openShopping(tester);
+    await tester.tap(find.byTooltip('Esporta in Google Keep'));
+    await settle(tester);
+    expect(find.text('Google Keep non è installato'), findsOneWidget);
+    await tester.tap(find.text('Condividi…'));
+    await settle(tester);
+    final note = app.shareSheet.exported.single;
+    expect(note.title, 'Spesa 2 nov – 8 nov');
+    expect(note.lines, app.keep.exported.single.lines);
   });
 }

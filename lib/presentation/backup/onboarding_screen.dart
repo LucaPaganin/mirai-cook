@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../application/providers.dart';
-import '../../data/repositories.dart';
+import '../../application/ports/repositories.dart';
 import 'restore_screen.dart';
 
 /// DATA-14: first launch with an empty database.

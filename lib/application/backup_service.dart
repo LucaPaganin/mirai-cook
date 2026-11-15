@@ -1,14 +1,11 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:drift/drift.dart';
 import 'package:path/path.dart' as p;
-import 'package:sqlite3/sqlite3.dart' as sqlite;
 
-import '../data/backup/backup_target.dart';
-import '../data/db/app_database.dart';
-import '../data/repositories.dart';
-import '../domain/clock.dart';
+import 'ports/backup.dart';
+import 'ports/clock.dart';
+import 'ports/repositories.dart';
 
 sealed class BackupOutcome {
   const BackupOutcome();
@@ -27,27 +24,6 @@ class BackupSkipped extends BackupOutcome {
 class BackupFailed extends BackupOutcome {
   const BackupFailed(this.message);
   final String message;
-}
-
-sealed class SnapshotValidation {
-  const SnapshotValidation();
-}
-
-class SnapshotValid extends SnapshotValidation {
-  const SnapshotValid(this.schemaVersion);
-  final int schemaVersion;
-}
-
-class SnapshotInvalid extends SnapshotValidation {
-  const SnapshotInvalid(this.reason);
-  final String reason;
-}
-
-/// DATA-10: made by a newer app version.
-class SnapshotTooNew extends SnapshotValidation {
-  const SnapshotTooNew(this.schemaVersion, this.supported);
-  final int schemaVersion;
-  final int supported;
 }
 
 sealed class RestoreOutcome {
@@ -85,7 +61,7 @@ class BackupService {
     this.keepLocalSnapshots = 3,
   });
 
-  final AppDatabase db;
+  final LocalDatabase db;
   final SettingsRepository settings;
   final Clock clock;
   final DatabaseFiles files;
@@ -123,7 +99,7 @@ class BackupService {
   Future<File> createSnapshot(Directory dir, String name) async {
     final file = File(p.join(dir.path, name));
     if (await file.exists()) await file.delete();
-    await db.customStatement('VACUUM INTO ?', [file.path]);
+    await db.snapshotTo(file);
     return file;
   }
 
@@ -157,7 +133,7 @@ class BackupService {
           id: '',
           name: name,
           createdAt: now,
-          recipeCount: await _recipeCount(),
+          recipeCount: await db.recipeCount(),
           schemaVersion: db.schemaVersion,
         ),
       );
@@ -184,40 +160,7 @@ class BackupService {
   }
 
   /// DATA-8, DATA-10: integrity, expected tables and schema version.
-  SnapshotValidation validate(File file) {
-    sqlite.Database? conn;
-    try {
-      conn = sqlite.sqlite3.open(file.path, mode: sqlite.OpenMode.readOnly);
-      final integrity = conn
-          .select('PRAGMA integrity_check')
-          .first
-          .values
-          .first;
-      if (integrity != 'ok') {
-        return const SnapshotInvalid('Il file di backup è danneggiato');
-      }
-      final tables = conn
-          .select("SELECT name FROM sqlite_master WHERE type = 'table'")
-          .map((r) => r['name'] as String)
-          .toSet();
-      if (!tables.containsAll(['recipes', 'slot_items', 'settings'])) {
-        return const SnapshotInvalid('Il file non è un backup di Mirai Cook');
-      }
-      final version =
-          conn.select('PRAGMA user_version').first.values.first as int;
-      if (version < 1) {
-        return const SnapshotInvalid('Versione del backup sconosciuta');
-      }
-      if (version > db.schemaVersion) {
-        return SnapshotTooNew(version, db.schemaVersion);
-      }
-      return SnapshotValid(version);
-    } on Object {
-      return const SnapshotInvalid('Il file non è un database valido');
-    } finally {
-      conn?.close();
-    }
-  }
+  SnapshotValidation validate(File file) => db.validateSnapshot(file);
 
   /// Downloads, validates, saves a local safety copy, then replaces the
   /// database (DATA-8, DATA-16).
@@ -277,14 +220,6 @@ class BackupService {
     return list;
   }
 
-  Future<int> _recipeCount() async {
-    final count = db.recipes.id.count();
-    final row = await (db.selectOnly(
-      db.recipes,
-    )..addColumns([count])).getSingle();
-    return row.read(count) ?? 0;
-  }
-
   static String _stamp(DateTime t) {
     String two(int n) => n.toString().padLeft(2, '0');
     return '${t.year}${two(t.month)}${two(t.day)}-'
@@ -296,18 +231,12 @@ class BackupService {
 class ChangeTracker {
   ChangeTracker(this.db, this.service);
 
-  final AppDatabase db;
+  final LocalDatabase db;
   final BackupService service;
-  StreamSubscription<Set<TableUpdate>>? _sub;
+  StreamSubscription<void>? _sub;
 
   void start() {
-    _sub ??= db
-        .tableUpdates(const TableUpdateQuery.any())
-        .where(
-          (updates) =>
-              updates.any((u) => u.table != db.settings.actualTableName),
-        )
-        .listen((_) => service.markChanged());
+    _sub ??= db.dataChanges.listen((_) => service.markChanged());
   }
 
   Future<void> stop() async {

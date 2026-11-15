@@ -4,9 +4,11 @@ import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mirai_cook/application/backup_service.dart';
-import 'package:mirai_cook/data/db/app_database.dart';
-import 'package:mirai_cook/data/db/drift_repositories.dart';
-import 'package:mirai_cook/data/repositories.dart';
+import 'package:mirai_cook/adapters/drift/app_database.dart';
+import 'package:mirai_cook/adapters/drift/drift_local_database.dart';
+import 'package:mirai_cook/adapters/drift/drift_repositories.dart';
+import 'package:mirai_cook/application/ports/backup.dart';
+import 'package:mirai_cook/application/ports/repositories.dart';
 import 'package:mirai_cook/domain/recipe.dart';
 import 'package:sqlite3/sqlite3.dart' as sqlite;
 
@@ -31,7 +33,7 @@ void main() {
     files = TempDatabaseFiles();
     target = FakeBackupTarget();
     service = BackupService(
-      db: db,
+      db: DriftLocalDatabase(db),
       settings: settings,
       clock: clock,
       files: files,
@@ -76,7 +78,7 @@ void main() {
 
   // Covers: DATA-3
   test('ChangeTracker marks writes to data tables, not settings', () async {
-    final tracker = ChangeTracker(db, service)..start();
+    final tracker = ChangeTracker(DriftLocalDatabase(db), service)..start();
     addTearDown(tracker.stop);
     await settings.set('x', '1');
     await pumpEventQueue();

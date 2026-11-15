@@ -2,7 +2,7 @@
 // ignore_for_file: unused_local_variable, unused_import
 import 'package:drift/drift.dart';
 import 'package:drift_dev/api/migrations_native.dart';
-import 'package:mirai_cook/data/db/app_database.dart';
+import 'package:mirai_cook/adapters/drift/app_database.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'generated/schema.dart';

@@ -78,7 +78,13 @@ EARS patterns used:
 - **SHOP-14** The app shall assign sections by normalized name from a seeded table of common ingredients; unknown names go to "Altro".
 - **SHOP-15** When the user changes an item's section, the app shall remember it for that normalized name.
 
-## 5. Persistence and backup (DATA)
+## 5. Shopping list export (EXP)
+
+- **EXP-1** When the user taps "Esporta in Google Keep" on the shopping list, the app shall send the shown week's list to Google Keep as a new note titled "Spesa <week range>", with one item per line in store-section order and the quantity after the name (e.g. "farina 300 g").
+- **EXP-2** The export shall leave out checked items; if no unchecked items remain, then the app shall say so and not export anything.
+- **EXP-3** If Google Keep is not installed, then the app shall tell the user and offer to share the same note with another app through the system share sheet.
+
+## 6. Persistence and backup (DATA)
 
 - **DATA-1** The app shall store all data in a local SQLite database (Drift).
 - **DATA-2** The app shall work fully offline, except URL import and backup upload.
@@ -98,19 +104,20 @@ EARS patterns used:
 - **DATA-16** Before replacing the database on restore, the app shall create a local snapshot of the current database so the restore can be undone.
 - **DATA-17** When the user disconnects the Google account, the app shall leave existing snapshots on Drive.
 
-## 6. Appearance (UI)
+## 7. Appearance (UI)
 
 - **UI-1** The app shall provide light and dark themes and a setting to follow the system theme (default), or force light or dark.
 - **UI-2** When the theme setting changes, the app shall apply it immediately, without restarting.
 
-## 7. Non-functional (NFR)
+## 8. Non-functional (NFR)
 
 - **NFR-1** Domain logic (ingredient parsing, quantity scaling, list aggregation, suggestion ranking) shall be pure Dart with no Flutter or Riverpod dependency.
 - **NFR-2** All external dependencies (database, HTTP, Google Drive, clock, background scheduler) shall be injected behind interfaces.
 - **NFR-3** Tests shall not perform network calls or depend on system time.
 - **NFR-4** Every requirement ID shall be referenced by at least one test (`// Covers: PLAN-8`).
+- **NFR-5** The app shall follow a lightweight hexagonal (ports and adapters) architecture: the domain is a pure core; use cases depend only on the domain and on ports (interfaces); every external system (database, HTTP, Google Drive, Google Keep, Android intents, background scheduler, clock) is reached through an adapter that implements a port, adapters do not depend on each other, and only the composition root chooses adapters.
 
-## 8. Ingredient parser (PARSE)
+## 9. Ingredient parser (PARSE)
 
 - **PARSE-1** The parser shall support Italian ingredient lines only in the MVP.
 - **PARSE-2** The parser shall recognise integers and decimals with comma or dot (`200`, `1,5`, `0.5`).
@@ -124,7 +131,7 @@ EARS patterns used:
 ## Out of scope for MVP
 Multi-user sync, iOS release, LLM-based import, automatic meal plan generation, nutrition tracking, JSON export,
 configurable first day of week, configurable/extra meal slots, shopping list over arbitrary date ranges,
-cross-dimension unit conversion (cups, densities), English/imperial ingredient parsing, custom/reorderable store sections.
+syncing the shopping list back from Google Keep, cross-dimension unit conversion (cups, densities), English/imperial ingredient parsing, custom/reorderable store sections.
 
 ## Data model notes
 - Slot items: `slot_item(date, meal_type, position, free_text | recipe_id, servings)`.
@@ -136,6 +143,7 @@ cross-dimension unit conversion (cups, densities), English/imperial ingredient p
 - Imported recipes without a yield default to 4 servings.
 - Identical unquantified lines (e.g. "Sale q.b." from two recipes) are shown once (SHOP-4: no quantities are combined).
 - Restore keeps up to 3 local safety snapshots (DATA-16).
+- Google Keep export (EXP-1): Keep's REST API is only available to Google Workspace domains, not to personal accounts, so the adapter hands the note to the Keep app with an Android `ACTION_SEND` intent restricted to Keep's package (title in `EXTRA_SUBJECT`). Keep creates a text note; "Mostra caselle di controllo" turns its lines into a checklist. No extra OAuth scope is needed.
 
 ## Open points
 - None.

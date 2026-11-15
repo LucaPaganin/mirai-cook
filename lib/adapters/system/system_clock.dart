@@ -1,4 +1,4 @@
-import '../domain/clock.dart';
+import '../../application/ports/clock.dart';
 
 /// The only place allowed to read the system time.
 class SystemClock implements Clock {
