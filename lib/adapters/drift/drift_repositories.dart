@@ -10,7 +10,7 @@ import '../../domain/shopping.dart';
 import '../../domain/store_section.dart';
 import '../../domain/suggestion_ranker.dart';
 import '../../domain/tags.dart';
-import '../repositories.dart';
+import '../../application/ports/repositories.dart';
 import 'app_database.dart';
 
 class DriftRecipeRepository implements RecipeRepository {

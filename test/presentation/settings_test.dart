@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mirai_cook/data/db/drift_repositories.dart';
-import 'package:mirai_cook/data/repositories.dart';
+import 'package:mirai_cook/adapters/drift/drift_repositories.dart';
+import 'package:mirai_cook/application/ports/repositories.dart';
 
 import 'helpers.dart';
 

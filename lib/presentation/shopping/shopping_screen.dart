@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../application/ports/shopping_list_exporter.dart';
 import '../../application/providers.dart';
 import '../../domain/calendar.dart';
 import '../../domain/shopping.dart';
@@ -34,6 +35,14 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Spesa'),
+        actions: [
+          IconButton(
+            key: const Key('export-keep'),
+            tooltip: 'Esporta in Google Keep',
+            icon: const Icon(Icons.note_add_outlined),
+            onPressed: rows.hasValue ? () => _exportToKeep(week) : null,
+          ),
+        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(48),
           child: Row(
@@ -88,6 +97,54 @@ class _ShoppingScreenState extends ConsumerState<ShoppingScreen> {
         ],
       ),
     );
+  }
+
+  /// EXP-1..3: send what is left to buy to Google Keep; if Keep is missing,
+  /// offer the system share sheet.
+  Future<void> _exportToKeep(Week week) async {
+    final rows = await ref.read(shoppingListProvider(week).future);
+    final result = await ref.read(keepExportProvider).export(week, rows);
+    if (!mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    switch (result) {
+      case ExportDone():
+        break; // Keep is now in front with the new note.
+      case ExportNothingToDo():
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('Niente da esportare: è tutto spuntato'),
+          ),
+        );
+      case ExportUnavailable():
+        messenger.showSnackBar(
+          SnackBar(
+            content: const Text('Google Keep non è installato'),
+            action: SnackBarAction(
+              label: 'Condividi…',
+              onPressed: () => _shareSheet(week, rows),
+            ),
+          ),
+        );
+      case ExportFailed(:final message):
+        messenger.showSnackBar(
+          SnackBar(content: Text('Esportazione non riuscita: $message')),
+        );
+    }
+  }
+
+  Future<void> _shareSheet(Week week, List<ShoppingRow> rows) async {
+    final result = await ref.read(shareSheetExportProvider).export(week, rows);
+    if (!mounted) return;
+    final error = switch (result) {
+      ExportFailed(:final message) => 'Condivisione non riuscita: $message',
+      ExportUnavailable() => 'Condivisione non disponibile',
+      ExportDone() || ExportNothingToDo() => null,
+    };
+    if (error != null) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(error)));
+    }
   }
 }
 

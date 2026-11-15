@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
-import 'backup_target.dart';
+import '../../application/ports/backup.dart';
 
 class LocalDatabaseFiles implements DatabaseFiles {
   const LocalDatabaseFiles();

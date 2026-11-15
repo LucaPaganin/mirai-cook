@@ -131,6 +131,52 @@ final class AppDatabaseProvider
 
 String _$appDatabaseHash() => r'1d32c5e6022201ef2946d197336afb6a250ef9cb';
 
+/// The live database as seen by the backup use case.
+
+@ProviderFor(localDatabase)
+final localDatabaseProvider = LocalDatabaseProvider._();
+
+/// The live database as seen by the backup use case.
+
+final class LocalDatabaseProvider
+    extends $FunctionalProvider<LocalDatabase, LocalDatabase, LocalDatabase>
+    with $Provider<LocalDatabase> {
+  /// The live database as seen by the backup use case.
+  LocalDatabaseProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'localDatabaseProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$localDatabaseHash();
+
+  @$internal
+  @override
+  $ProviderElement<LocalDatabase> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  LocalDatabase create(Ref ref) {
+    return localDatabase(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(LocalDatabase value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<LocalDatabase>(value),
+    );
+  }
+}
+
+String _$localDatabaseHash() => r'37c4fc6ca75d797ff5161924c1533c3f8640b78e';
+
 @ProviderFor(recipeRepository)
 final recipeRepositoryProvider = RecipeRepositoryProvider._();
 
@@ -1351,6 +1397,205 @@ final class ShoppingListFamily extends $Family
   String toString() => r'shoppingListProvider';
 }
 
+/// EXP-1: Google Keep.
+
+@ProviderFor(keepExporter)
+final keepExporterProvider = KeepExporterProvider._();
+
+/// EXP-1: Google Keep.
+
+final class KeepExporterProvider
+    extends
+        $FunctionalProvider<
+          ShoppingListExporter,
+          ShoppingListExporter,
+          ShoppingListExporter
+        >
+    with $Provider<ShoppingListExporter> {
+  /// EXP-1: Google Keep.
+  KeepExporterProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'keepExporterProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$keepExporterHash();
+
+  @$internal
+  @override
+  $ProviderElement<ShoppingListExporter> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  ShoppingListExporter create(Ref ref) {
+    return keepExporter(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(ShoppingListExporter value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<ShoppingListExporter>(value),
+    );
+  }
+}
+
+String _$keepExporterHash() => r'86fa485fdb88627621db43018eb5a1aa85f5e02e';
+
+/// EXP-3: any app, through the system share sheet.
+
+@ProviderFor(shareSheetExporter)
+final shareSheetExporterProvider = ShareSheetExporterProvider._();
+
+/// EXP-3: any app, through the system share sheet.
+
+final class ShareSheetExporterProvider
+    extends
+        $FunctionalProvider<
+          ShoppingListExporter,
+          ShoppingListExporter,
+          ShoppingListExporter
+        >
+    with $Provider<ShoppingListExporter> {
+  /// EXP-3: any app, through the system share sheet.
+  ShareSheetExporterProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'shareSheetExporterProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$shareSheetExporterHash();
+
+  @$internal
+  @override
+  $ProviderElement<ShoppingListExporter> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  ShoppingListExporter create(Ref ref) {
+    return shareSheetExporter(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(ShoppingListExporter value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<ShoppingListExporter>(value),
+    );
+  }
+}
+
+String _$shareSheetExporterHash() =>
+    r'46301f713655c0a9ccfdf8341afa9ed112faf3c1';
+
+@ProviderFor(keepExport)
+final keepExportProvider = KeepExportProvider._();
+
+final class KeepExportProvider
+    extends
+        $FunctionalProvider<
+          ShoppingListExport,
+          ShoppingListExport,
+          ShoppingListExport
+        >
+    with $Provider<ShoppingListExport> {
+  KeepExportProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'keepExportProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$keepExportHash();
+
+  @$internal
+  @override
+  $ProviderElement<ShoppingListExport> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  ShoppingListExport create(Ref ref) {
+    return keepExport(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(ShoppingListExport value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<ShoppingListExport>(value),
+    );
+  }
+}
+
+String _$keepExportHash() => r'607c08c7077ddcc9f87278d43051f484705ef2cf';
+
+@ProviderFor(shareSheetExport)
+final shareSheetExportProvider = ShareSheetExportProvider._();
+
+final class ShareSheetExportProvider
+    extends
+        $FunctionalProvider<
+          ShoppingListExport,
+          ShoppingListExport,
+          ShoppingListExport
+        >
+    with $Provider<ShoppingListExport> {
+  ShareSheetExportProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'shareSheetExportProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$shareSheetExportHash();
+
+  @$internal
+  @override
+  $ProviderElement<ShoppingListExport> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  ShoppingListExport create(Ref ref) {
+    return shareSheetExport(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(ShoppingListExport value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<ShoppingListExport>(value),
+    );
+  }
+}
+
+String _$shareSheetExportHash() => r'768b5713e9bfe23c57d01f205812a57017bee64e';
+
 @ProviderFor(httpClient)
 final httpClientProvider = HttpClientProvider._();
 
@@ -1649,7 +1894,7 @@ final class BackupServiceProvider
   }
 }
 
-String _$backupServiceHash() => r'74c341ff5a8bf8d03932b41d440ebc8fe58c52ce';
+String _$backupServiceHash() => r'3c89390e4cb205d82c76adc5d889978f1c635561';
 
 @ProviderFor(changeTracker)
 final changeTrackerProvider = ChangeTrackerProvider._();
@@ -1690,7 +1935,7 @@ final class ChangeTrackerProvider
   }
 }
 
-String _$changeTrackerHash() => r'fe5e6514ba206d84561b3b09ccf7d3767df6aba2';
+String _$changeTrackerHash() => r'a79fc33f0ff49d9cd43b847b10ccdec720305090';
 
 @ProviderFor(setting)
 final settingProvider = SettingFamily._();

@@ -5,9 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:meta/meta.dart';
 import 'package:mirai_cook/application/providers.dart';
-import 'package:mirai_cook/data/db/app_database.dart';
-import 'package:mirai_cook/data/db/drift_repositories.dart';
-import 'package:mirai_cook/data/repositories.dart';
+import 'package:mirai_cook/adapters/drift/app_database.dart';
+import 'package:mirai_cook/adapters/drift/drift_repositories.dart';
+import 'package:mirai_cook/application/ports/repositories.dart';
 import 'package:mirai_cook/presentation/app.dart';
 
 import '../fakes.dart';
@@ -23,6 +23,8 @@ class TestApp {
     this.share,
     this.account,
     this.scheduler,
+    this.keep,
+    this.shareSheet,
   );
 
   final AppDatabase db;
@@ -31,6 +33,8 @@ class TestApp {
   final FakeShareIntentSource share;
   final FakeBackupAccount account;
   final FakeBackgroundScheduler scheduler;
+  final FakeShoppingListExporter keep;
+  final FakeShoppingListExporter shareSheet;
 
   FakeBackupTarget get target => account.target! as FakeBackupTarget;
 }
@@ -89,6 +93,8 @@ Future<TestApp> _pumpApp(
   final account = FakeBackupAccount(target);
   final files = TempDatabaseFiles();
   final scheduler = FakeBackgroundScheduler();
+  final keep = FakeShoppingListExporter();
+  final shareSheet = FakeShoppingListExporter();
   addTearDown(files.dispose);
   await tester.pumpWidget(
     ProviderScope(
@@ -101,12 +107,14 @@ Future<TestApp> _pumpApp(
         backupAccountProvider.overrideWithValue(account),
         databaseFilesProvider.overrideWithValue(files),
         backgroundSchedulerProvider.overrideWithValue(scheduler),
+        keepExporterProvider.overrideWithValue(keep),
+        shareSheetExporterProvider.overrideWithValue(shareSheet),
       ],
       child: MiraiCookApp(home: home),
     ),
   );
   await settle(tester);
-  return TestApp(db, clock, http, share, account, scheduler);
+  return TestApp(db, clock, http, share, account, scheduler, keep, shareSheet);
 }
 
 /// Settles repeatedly until [finder] matches (async platform calls such as

@@ -1,6 +1,6 @@
-import '../data/http_client.dart';
-import '../data/repositories.dart';
-import '../data/thumbnailer.dart';
+import 'ports/http_client.dart';
+import 'ports/repositories.dart';
+import 'ports/thumbnailer.dart';
 import '../domain/ingredient_parser.dart';
 import '../domain/recipe.dart';
 import '../domain/recipe_extractor.dart';

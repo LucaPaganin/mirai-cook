@@ -1,7 +1,7 @@
 import 'package:drift/native.dart';
 import 'package:drift_dev/api/migrations_native.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mirai_cook/data/db/app_database.dart';
+import 'package:mirai_cook/adapters/drift/app_database.dart';
 
 void main() {
   // Covers: DATA-1, DATA-9

@@ -2,7 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
-import 'package:mirai_cook/data/thumbnailer.dart';
+import 'package:mirai_cook/adapters/system/image_thumbnailer.dart';
 
 void main() {
   // Covers: IMP-7

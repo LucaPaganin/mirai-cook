@@ -2,15 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/services.dart';
 
-/// Text shared to the app from other Android apps (IMP-1).
-abstract interface class ShareIntentSource {
-  /// Text that launched the app, if any (consumed once).
-  Future<String?> takeInitialText();
+import '../../application/ports/share_intent.dart';
 
-  /// Text shared while the app is running.
-  Stream<String> get sharedTexts;
-}
-
+/// [ShareIntentSource] adapter: Android ACTION_SEND via a method channel.
 class MethodChannelShareIntentSource implements ShareIntentSource {
   MethodChannelShareIntentSource() {
     _channel.setMethodCallHandler((call) async {

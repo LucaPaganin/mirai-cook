@@ -1,10 +1,8 @@
 import 'package:workmanager/workmanager.dart';
 
-/// Schedules periodic background work (DATA-4).
-abstract interface class BackgroundScheduler {
-  Future<void> scheduleDailyBackup();
-}
+import '../../application/ports/background_scheduler.dart';
 
+/// [BackgroundScheduler] adapter on `workmanager`.
 class WorkmanagerScheduler implements BackgroundScheduler {
   WorkmanagerScheduler(this._dispatcher);
 

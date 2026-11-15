@@ -3,11 +3,7 @@ import 'dart:typed_data';
 
 import 'package:image/image.dart' as img;
 
-abstract interface class Thumbnailer {
-  /// Returns a compressed JPEG of at most [maxBytes], or null if the image
-  /// cannot be decoded (IMP-7).
-  Future<List<int>?> makeThumbnail(List<int> bytes, {int maxBytes = 50 * 1024});
-}
+import '../../application/ports/thumbnailer.dart';
 
 class ImageThumbnailer implements Thumbnailer {
   const ImageThumbnailer({this.runInIsolate = true});
